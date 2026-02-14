@@ -14,7 +14,7 @@ Plataforma inteligente de matching entre empresas y candidatos.
 - Feedback
 
 ## 🏗️ Arquitectura
--Frontend: JS
+- Frontend: JS
 - Backend:Express
 - DB: PostgreSQL
 - IA: OpenAI
