@@ -105,3 +105,72 @@ usuario
 MatchIQ es una plataforma de preselección automática de talento tecnológico que conecta empresas y desarrolladores mediante sistemas de coincidencia inteligente, ranking automatizado y evaluación técnica con IA.
 
 El sistema elimina la postulación manual, automatiza la comparación de perfiles y permite a las empresas enfocarse únicamente en los mejores candidatos generados por el sistema.
+
+## Flujo de carpetas
+
+src/
+│
+├── config/
+│   ├── db.js
+│   ├── env.js
+│
+├── middlewares/
+│   ├── auth.middleware.js
+│   ├── role.middleware.js
+│   ├── error.middleware.js
+│
+├── modules/
+│
+│   ├── auth/
+│   │   ├── auth.routes.js
+│   │   ├── auth.controller.js
+│   │   ├── auth.service.js
+│
+│   ├── users/
+│   │   ├── users.routes.js
+│   │   ├── users.controller.js
+│   │   ├── users.service.js
+│
+│   ├── candidate/
+│   │   ├── candidate.routes.js
+│   │   ├── candidate.controller.js
+│   │   ├── candidate.service.js
+│
+│   ├── company/
+│   │   ├── company.routes.js
+│   │   ├── company.controller.js
+│   │   ├── company.service.js
+│
+│   ├── catalog/
+│   │   ├── categories.routes.js
+│   │   ├── skills.routes.js
+│   │   ├── catalog.service.js
+│
+│   ├── offers/
+│   │   ├── offers.routes.js
+│   │   ├── offers.controller.js
+│   │   ├── offers.service.js
+│
+│   ├── matching/
+│   │   ├── matching.routes.js
+│   │   ├── matching.controller.js
+│   │   ├── matching.service.js
+│
+│   ├── tests/
+│   │   ├── tests.routes.js
+│   │   ├── tests.controller.js
+│   │   ├── tests.service.js
+│
+│   ├── ai/
+│   │   ├── ai.service.js
+│
+│   ├── admin/
+│   │   ├── admin.routes.js
+│   │   ├── admin.controller.js
+│   │   ├── admin.service.js
+│
+├── utils/
+│   ├── logger.js
+│
+├── app.js
+├── server.js

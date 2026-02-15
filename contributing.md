@@ -30,13 +30,13 @@ Estructura de ramas oficial del proyecto:
 - `develop`  
   Rama de integración. Todo el desarrollo se fusiona aquí antes de producción.
 
-- `feature/*`  
+- `feature/[ISSUE-(N)/]*`  
   Nuevas funcionalidades.  
-  Ejemplo: `feature/login-system`
+  Ejemplo: `feature/[ISSUE-2]/login-system`
 
-- `fix/*`  
+- `fix/[ISSUE-(N)/*`  
   Corrección de errores.  
-  Ejemplo: `fix/auth-token-expiration`
+  Ejemplo: `fix/[ISSUE-12]auth-token-expiration`
 
 ---
 
@@ -44,15 +44,15 @@ Estructura de ramas oficial del proyecto:
 
 Se utiliza el estándar de commits convencionales:
 
-- `feat:` nueva funcionalidad  
-- `fix:` corrección de bug  
+- `feat:[ISSUE-(N)]` nueva funcionalidad con su respectivo issue  
+- `fix:[ISSUE-(N)]` corrección de bug con su respectivo issue
 - `docs:` documentación  
 - `refactor:` refactorización sin cambio funcional  
 - `test:` tests  
 
 Ejemplos:
-feat: add matching scoring engine
-fix: resolve jwt expiration bug
+feat:[ISSUE-2] add matching scoring engine
+fix:[ISSUE-12] resolve jwt expiration bug
 docs: update api documentation
 refactor: optimize matching service
 test: add unit tests for auth service
