@@ -174,3 +174,40 @@ src/
 │
 ├── app.js
 ├── server.js
+
+#### MODELO DE ARQUITECTURA DE SESION
+
+# Arquitectura de sesión MatchIQ
+- Modelo de sesión híbrida:
+
+  Access Token (JWT corto)
+
+  Refresh Token (JWT largo, persistido en DB)
+
+  Rotación de refresh token
+
+  Invalidación en logout
+
+  Middleware de validación
+
+  Roles
+
+  Seguridad por capas
+
+# Modelo DB
+
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE refresh_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  revoked BOOLEAN DEFAULT FALSE
+);
