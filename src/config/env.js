@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import dotenv from 'dotenv'
+dotenv.config()
 
 export const env = {
   PORT: process.env.PORT,
@@ -8,5 +8,5 @@ export const env = {
   DB_URL: process.env.DB_URL,
   TOKEN_EXPIRES: process.env.TOKEN_EXPIRES || '15m',
   REFRESH_EXPIRES: process.env.REFRESH_EXPIRES || '7d',
-  DB_SCHEMA: process.env.DB_SCHEMA || 'public',
-};
+  DB_SCHEMA: process.env.DB_SCHEMA || 'public'
+}

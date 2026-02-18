@@ -1,21 +1,21 @@
-import express from 'express';
-import authRoutes from './modules/auth/auth.routes.js';
-import { testConnection } from './config/db.js';
-import { env } from './config/env.js';
+import express from 'express'
+import authRoutes from './modules/auth/auth.routes.js'
+import { testConnection } from './config/db.js'
+import { env } from './config/env.js'
 
-const app = express();
+const app = express()
 
-app.use(express.json());
+app.use(express.json())
 
 const startServer = async () => {
-  await testConnection();
-  
+  await testConnection()
+
   app.listen(env.PORT, () => {
-    console.log(`Servidor en puerto ${env.PORT}`);
-  });
-  app.use('/auth', authRoutes);
-};
+    console.log(`Servidor en puerto ${env.PORT}`)
+  })
+  app.use('/auth', authRoutes)
+}
 
-startServer();
+startServer()
 
-export default app;
+export default app
