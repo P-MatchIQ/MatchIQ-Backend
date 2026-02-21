@@ -1,21 +1,17 @@
 import express from 'express'
+import cors from 'cors'
+import helmet from 'helmet'
+import morgan from 'morgan'
 import authRoutes from './modules/auth/auth.routes.js'
-import { testConnection } from './config/db.js'
-import { env } from './config/env.js'
 
-const app = express()
+const app = express();
 
-app.use(express.json())
+// Middlewares globales
+app.use(cors());
+app.use(helmet());
+app.use(morgan('dev'));
+app.use(express.json());
+app.use('/auth', authRoutes);
 
-const startServer = async () => {
-  await testConnection()
 
-  app.listen(env.PORT, () => {
-    console.log(`Servidor en puerto ${env.PORT}`)
-  })
-  app.use('/auth', authRoutes)
-}
-
-startServer()
-
-export default app
+export default app;

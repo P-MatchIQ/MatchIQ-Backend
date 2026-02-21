@@ -1,21 +1,16 @@
-import pkg from 'pg';
-import { env } from './env.js';
+import pkg from 'pg'
+const { Pool } = pkg
 
-const { Pool } = pkg;
-
-export const db = new Pool({
-  connectionString: env.DB_URL
-});
-
-// Verificar conexión simple
-export const testConnection = async () => {
-  try {
-    const result = await db.query('SELECT NOW()');
-    console.log('Conexión exitosa a PostgreSQL');
-    console.log('Hora del servidor:', result.rows[0].now);
-    return true;
-  } catch (error) {
-    console.error('Error de conexión:', error.message);
-    return false;
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: {
+    require: true,
+    rejectUnauthorized: false
   }
-};
+})
+
+export default pool

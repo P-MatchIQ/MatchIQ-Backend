@@ -1,41 +1,64 @@
-import { authService } from './auth.service.js'
+import { validateRegister } from './auth.validation.js';
+import { authService } from './auth.service.js';
 
-export async function login (req, res) {
+async function registerCandidate(req, res) {
   try {
-    const { email, password } = req.body
-    const data = await authService.login(email, password)
-    res.json(data)
-  } catch (err) {
-    res.status(400).json({ error: err.message })
+    const { email, password, confirmPassword } = req.body;
+
+    validateRegister({ email, password, confirmPassword });
+
+    const result = await authService.register({
+      email,
+      password,
+      role: 'candidate'
+    });
+
+    return res.status(201).json(result);
+
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
   }
 }
 
-export async function refresh (req, res) {
+async function registerCompany(req, res) {
   try {
-    const { refreshToken } = req.body
-    const data = await authService.refresh(refreshToken)
-    res.json(data)
-  } catch (err) {
-    res.status(401).json({ error: err.message })
+    const { email, password, confirmPassword } = req.body;
+
+    validateRegister({ email, password, confirmPassword });
+
+    const result = await authService.register({
+      email,
+      password,
+      role: 'company'
+    });
+
+    return res.status(201).json(result);
+
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
   }
 }
 
-export async function logout (req, res) {
+async function login(req, res) {
   try {
-    const { refreshToken } = req.body
-    await authService.logout(refreshToken)
-    res.json({ message: 'Session closed' })
-  } catch (err) {
-    res.status(400).json({ error: err.message })
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      throw new Error('Email y password son obligatorios');
+    }
+
+    const result = await authService.login({ email, password });
+
+    return res.json(result);
+
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
   }
 }
 
-export async function recoverPassword (req, res) {
-  try {
-    const { email } = req.body
-    await authService.recover(email)
-    res.json({ message: 'Recovery email sent' })
-  } catch (err) {
-    res.status(400).json({ error: err.message })
-  }
-}
+
+export const authController = {
+  registerCandidate,
+  registerCompany,
+  login
+};

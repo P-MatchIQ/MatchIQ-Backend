@@ -1,122 +1,97 @@
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
-import { db } from '../../config/db.js'
-import { env } from '../../config/env.js'
+import pool from '../../config/db.js';
+import { hashPassword } from '../../utils/hash.js';
+import { generateAccessToken } from '../../utils/jwt.js';
+import bcrypt from 'bcrypt';
+
+async function register({ email, password, role }) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // 1️⃣ Verificar si el email ya existe
+    const existingUser = await client.query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      throw new Error('El email ya está registrado');
+    }
+
+    // 2️⃣ Hashear contraseña
+    const passwordHash = await hashPassword(password);
+
+    // 3️⃣ Crear usuario
+    const userResult = await client.query(
+      `INSERT INTO users (email, password_hash, role)
+       VALUES ($1, $2, $3)
+       RETURNING id, role`,
+      [email, passwordHash, role]
+    );
+
+    const user = userResult.rows[0];
+
+    // 4️⃣ Crear perfil vacío según rol
+    if (role === 'candidate') {
+      await client.query(
+        'INSERT INTO candidate_profiles (user_id) VALUES ($1)',
+        [user.id]
+      );
+    }
+
+    if (role === 'company') {
+      await client.query(
+        'INSERT INTO company_profiles (user_id) VALUES ($1)',
+        [user.id]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    // 5️⃣ Generar token automáticamente (queda logueado)
+    const token = generateAccessToken({
+      id: user.id,
+      role: user.role
+    });
+
+    return { token };
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function login({ email, password }) {
+  const userResult = await pool.query(
+    'SELECT id, email, password_hash, role FROM users WHERE email = $1',
+    [email]
+  );
+
+  if (userResult.rows.length === 0) {
+    throw new Error('Credenciales inválidas');
+  }
+
+  const user = userResult.rows[0];
+
+  const isMatch = await bcrypt.compare(password, user.password_hash)
+
+  if (!isMatch) {
+    throw new Error('Credenciales inválidas')
+  }
+
+  const token = generateAccessToken({
+    id: user.id,
+    role: user.role
+  })
+
+  return { token }
+}
 
 export const authService = {
-
-  async login (email, password) {
-    const userRes = await db.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email]
-    )
-
-    if (userRes.rows.length === 0) {
-      throw new Error('Invalid credentials')
-    }
-
-    const user = userRes.rows[0]
-
-    const valid = await bcrypt.compare(password, user.password_hash)
-    if (!valid) throw new Error('Invalid credentials')
-
-    const accessToken = jwt.sign(
-      { id: user.id, role: user.role },
-      env.JWT_SECRET,
-      { expiresIn: env.TOKEN_EXPIRES }
-    )
-
-    const refreshToken = jwt.sign(
-      { id: user.id },
-      env.JWT_REFRESH_SECRET,
-      { expiresIn: env.REFRESH_EXPIRES }
-    )
-
-    // guardar refresh token
-    await db.query(
-      'INSERT INTO refresh_tokens(user_id, token) VALUES ($1,$2)',
-      [user.id, refreshToken]
-    )
-
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        role: user.role,
-        email: user.email
-      }
-    }
-  },
-
-  async refresh (oldRefreshToken) {
-    const tokenRes = await db.query(
-      'SELECT * FROM refresh_tokens WHERE token = $1 AND revoked = false',
-      [oldRefreshToken]
-    )
-
-    if (tokenRes.rows.length === 0) {
-      throw new Error('Invalid refresh token')
-    }
-
-    let payload
-    try {
-      payload = jwt.verify(oldRefreshToken, env.JWT_REFRESH_SECRET)
-    } catch {
-      throw new Error('Expired refresh token')
-    }
-
-    // rotación: revocar token viejo
-    await db.query(
-      'UPDATE refresh_tokens SET revoked = true WHERE token = $1',
-      [oldRefreshToken]
-    )
-
-    const newAccessToken = jwt.sign(
-      { id: payload.id },
-      env.JWT_SECRET,
-      { expiresIn: env.TOKEN_EXPIRES }
-    )
-
-    const newRefreshToken = jwt.sign(
-      { id: payload.id },
-      env.JWT_REFRESH_SECRET,
-      { expiresIn: env.REFRESH_EXPIRES }
-    )
-
-    await db.query(
-      'INSERT INTO refresh_tokens(user_id, token) VALUES ($1,$2)',
-      [payload.id, newRefreshToken]
-    )
-
-    return {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken
-    }
-  },
-
-  async logout (refreshToken) {
-    await db.query(
-      'UPDATE refresh_tokens SET revoked = true WHERE token = $1',
-      [refreshToken]
-    )
-  },
-
-  async recover (email) {
-    const userRes = await db.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email]
-    )
-
-    if (userRes.rows.length === 0) return
-
-    const token = jwt.sign(
-      { email },
-      env.JWT_SECRET,
-      { expiresIn: '15m' }
-    )
-
-    // aquí iría servicio real de email
-    console.log(`Recovery token: ${token}`)
-  }
+  register,
+  login
 }
