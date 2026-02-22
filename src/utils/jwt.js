@@ -7,3 +7,6 @@ export function generateAccessToken (payload) {
     { expiresIn: process.env.JWT_EXPIRES_IN }
   )
 }
+export function verifyAccessToken (token) {
+  return jwt.verify(token, process.env.JWT_SECRET)
+}
