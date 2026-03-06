@@ -72,6 +72,26 @@ async function login({ email, password }) {
   );
 
   if (userResult.rows.length === 0) {
+    // si no hay usuario, permitir admin vía variables de entorno
+    if (
+      email === process.env.ADMIN_EMAIL &&
+      password === process.env.ADMIN_PASSWORD
+    ) {
+      const token = generateAccessToken({
+        id: null,
+        email,
+        role: 'admin'
+      });
+      return {
+        token,
+        user: {
+          id: null,
+          email,
+          role: 'admin'
+        }
+      };
+    }
+
     throw new Error('Credenciales inválidas');
   }
 
@@ -85,6 +105,7 @@ async function login({ email, password }) {
 
   const token = generateAccessToken({
     id: user.id,
+    email: user.email,
     role: user.role
   })
 

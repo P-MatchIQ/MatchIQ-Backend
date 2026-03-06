@@ -120,6 +120,18 @@ async function me(req, res) {
       });
     }
 
+    // Si el token corresponde a un admin (no tiene ID de BD)
+    if (req.user.role === 'admin') {
+      return res.status(200).json({
+        authenticated: true,
+        user: {
+          id: req.user.id, // puede ser null
+          email: req.user.email,
+          role: 'admin'
+        }
+      });
+    }
+
     // Obtener datos completos del usuario desde BD
     const user = await authService.getUserById(req.user.id);
 
@@ -168,6 +180,18 @@ async function checkMe(req, res) {
 
     // Verificar token
     const payload = verifyAccessToken(tokenFromCookie);
+
+    // Si es admin no existe registro en BD
+    if (payload.role === 'admin') {
+      return res.status(200).json({
+        authenticated: true,
+        user: {
+          id: payload.id || null,
+          email: payload.email,
+          role: 'admin'
+        }
+      });
+    }
 
     // Obtener datos del usuario
     const user = await authService.getUserById(payload.id);
