@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import authRoutes from './modules/auth/auth.routes.js'
 import candidateRoutes from './modules/cadidate/candidate.routes.js';
+import offerRoutes from './modules/offers/offers.routes.js';
 
 const app = express()
 
@@ -16,5 +17,5 @@ app.use(express.json());      // ← debe estar aquí antes de las rutas
 // Rutas DESPUÉS
 app.use('/auth', authRoutes);
 app.use('/candidate', candidateRoutes);
-
+app.use('/offers', offerRoutes);
 export default app;
