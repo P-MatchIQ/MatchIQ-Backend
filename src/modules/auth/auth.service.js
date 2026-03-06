@@ -72,6 +72,26 @@ async function login({ email, password }) {
   );
 
   if (userResult.rows.length === 0) {
+    // si no hay usuario, permitir admin vía variables de entorno
+    if (
+      email === process.env.ADMIN_EMAIL &&
+      password === process.env.ADMIN_PASSWORD
+    ) {
+      const token = generateAccessToken({
+        id: null,
+        email,
+        role: 'admin'
+      });
+      return {
+        token,
+        user: {
+          id: null,
+          email,
+          role: 'admin'
+        }
+      };
+    }
+
     throw new Error('Credenciales inválidas');
   }
 
@@ -85,13 +105,39 @@ async function login({ email, password }) {
 
   const token = generateAccessToken({
     id: user.id,
+    email: user.email,
     role: user.role
   })
 
-  return { token }
+  return { 
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    }
+  }
+}
+
+async function getUserById(userId) {
+  try {
+    const userResult = await pool.query(
+      'SELECT id, email, role FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return null;
+    }
+
+    return userResult.rows[0];
+  } catch (error) {
+    throw error;
+  }
 }
 
 export const authService = {
   register,
-  login
+  login,
+  getUserById
 }

@@ -1,12 +1,17 @@
-import { Router } from "express"
-import { candidateController } from "./candidate.controller.js"
+import { Router } from 'express';
+import { candidateController } from './candidate.controller.js';
+import { authorize } from '../../middlewares/authorize.js';
+import { authenticate } from '../../middlewares/authenticate.js';
 
 const router = Router();
 
-router.post("/create", candidateController.createCandidate)
-router.get("/get-all", candidateController.getAllCandidates)
-router.get("/get-by-id/:id", candidateController.getCandidateById)
-router.put("/update/:id", candidateController.updateCandidate)
+// Todas las rutas requieren estar autenticado y ser candidato
+router.use(authenticate);
+router.use(authorize('candidate'));
 
+router.get('/profile', candidateController.getProfile);
+router.patch('/profile', candidateController.updateProfile);
+router.put('/categories', candidateController.updateCategories);
+router.put('/skills', candidateController.updateSkills);
 
-export default router
+export default router;
