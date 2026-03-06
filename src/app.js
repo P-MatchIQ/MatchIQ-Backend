@@ -9,10 +9,25 @@ import offerRoutes from './modules/offers/offers.routes.js';
 
 const app = express()
 
+// ✅ Parsear orígenes permitidos desde variables de entorno
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(url => url.trim())
+  : ['http://localhost:3000'];
+
+const allowedMethods = process.env.ALLOWED_METHODS 
+  ? process.env.ALLOWED_METHODS.split(',').map(method => method.trim())
+  : ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
+
+const allowedHeaders = process.env.ALLOWED_HEADERS 
+  ? process.env.ALLOWED_HEADERS.split(',').map(header => header.trim())
+  : ['Content-Type', 'Authorization'];
+
 // ✅ Middlewares globales PRIMERO
 app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true  // ← Permitir cookies
+  origin: allowedOrigins,
+  credentials: true,
+  methods: allowedMethods,
+  allowedHeaders: allowedHeaders
 }));
 app.use(helmet());
 app.use(morgan('dev'));
