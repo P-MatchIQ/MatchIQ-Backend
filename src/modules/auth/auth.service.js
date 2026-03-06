@@ -88,10 +88,35 @@ async function login({ email, password }) {
     role: user.role
   })
 
-  return { token }
+  return { 
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    }
+  }
+}
+
+async function getUserById(userId) {
+  try {
+    const userResult = await pool.query(
+      'SELECT id, email, role FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return null;
+    }
+
+    return userResult.rows[0];
+  } catch (error) {
+    throw error;
+  }
 }
 
 export const authService = {
   register,
-  login
+  login,
+  getUserById
 }

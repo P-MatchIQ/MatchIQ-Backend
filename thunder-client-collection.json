@@ -1,0 +1,188 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "MatchIQ API - Cookie Auth Tests",
+  "dateExported": "2026-03-06T12:00:00.000Z",
+  "version": "1.1",
+  "folders": [
+    {
+      "name": "🔓 Public Routes",
+      "containerId": "",
+      "sortNum": 10000
+    },
+    {
+      "name": "🔐 Protected Routes",
+      "containerId": "",
+      "sortNum": 20000
+    },
+    {
+      "name": "🧪 Test Endpoints",
+      "containerId": "",
+      "sortNum": 30000
+    }
+  ],
+  "requests": [
+    {
+      "_id": "register-candidate",
+      "colId": "collection-id",
+      "containerId": "folder-public",
+      "name": "Register Candidate",
+      "url": "http://localhost:3005/auth/register/candidate",
+      "method": "POST",
+      "sortNum": 10000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"candidate@test.com\",\n  \"password\": \"TestPass123\",\n  \"confirmPassword\": \"TestPass123\"\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "register-company",
+      "colId": "collection-id",
+      "containerId": "folder-public",
+      "name": "Register Company",
+      "url": "http://localhost:3005/auth/register/company",
+      "method": "POST",
+      "sortNum": 15000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"company@test.com\",\n  \"password\": \"TestPass123\",\n  \"confirmPassword\": \"TestPass123\"\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "login-candidate",
+      "colId": "collection-id",
+      "containerId": "folder-public",
+      "name": "Login as Candidate",
+      "url": "http://localhost:3005/auth/login",
+      "method": "POST",
+      "sortNum": 20000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"candidate@test.com\",\n  \"password\": \"TestPass123\"\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "login-company",
+      "colId": "collection-id",
+      "containerId": "folder-public",
+      "name": "Login as Company",
+      "url": "http://localhost:3005/auth/login",
+      "method": "POST",
+      "sortNum": 25000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"company@test.com\",\n  \"password\": \"TestPass123\"\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "test-auth",
+      "colId": "collection-id",
+      "containerId": "folder-test",
+      "name": "Test Authentication Status",
+      "url": "http://localhost:3005/test/auth",
+      "method": "GET",
+      "sortNum": 10000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": []
+    },
+    {
+      "_id": "candidate-profile",
+      "colId": "collection-id",
+      "containerId": "folder-protected",
+      "name": "Get Candidate Profile",
+      "url": "http://localhost:3005/candidate/profile",
+      "method": "GET",
+      "sortNum": 10000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": []
+    },
+    {
+      "_id": "create-offer",
+      "colId": "collection-id",
+      "containerId": "folder-protected",
+      "name": "Create Job Offer",
+      "url": "http://localhost:3005/offers",
+      "method": "POST",
+      "sortNum": 20000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"title\": \"Desarrollador Full Stack\",\n  \"description\": \"Buscamos desarrollador con experiencia en React y Node.js\",\n  \"salary\": 50000,\n  \"modality\": \"remote\",\n  \"min_experience_years\": 2,\n  \"required_english_level\": \"intermediate\",\n  \"positions_available\": 1,\n  \"category_ids\": [1],\n  \"skill_ids\": [1, 2]\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "get-offers",
+      "colId": "collection-id",
+      "containerId": "folder-protected",
+      "name": "Get Company Offers",
+      "url": "http://localhost:3005/offers",
+      "method": "GET",
+      "sortNum": 25000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": []
+    },
+    {
+      "_id": "logout",
+      "colId": "collection-id",
+      "containerId": "folder-protected",
+      "name": "Logout",
+      "url": "http://localhost:3005/auth/logout",
+      "method": "POST",
+      "sortNum": 30000,
+      "created": "2026-03-06T12:00:00.000Z",
+      "modified": "2026-03-06T12:00:00.000Z",
+      "headers": []
+    }
+  ],
+  "settings": {
+    "options": {
+      "baseUrl": "http://localhost:3005"
+    }
+  }
+}
