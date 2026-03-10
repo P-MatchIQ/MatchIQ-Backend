@@ -1,19 +1,32 @@
 import { verifyAccessToken } from '../utils/jwt.js';
 
 export function authenticate(req, res, next) {
+  // 1️⃣ Intentar leer token de cookie primero
+  const tokenFromCookie = req.cookies?.token;
+  
+  // 2️⃣ Si no hay cookie, intentar de Authorization header (compatibilidad)
   const authHeader = req.headers.authorization;
+  const tokenFromHeader = authHeader?.startsWith('Bearer ') 
+    ? authHeader.split(' ')[1] 
+    : null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Token no proporcionado' });
+  const token = tokenFromCookie || tokenFromHeader;
+
+  if (!token) {
+    return res.status(401).json({ 
+      code: 'NOT_AUTHENTICATED',
+      message: 'Token no proporcionado' 
+    });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const payload = verifyAccessToken(token);
     req.user = payload; // { id, role }
     next();
   } catch (error) {
-    return res.status(401).json({ message: 'Token inválido o expirado' });
+    return res.status(401).json({ 
+      code: 'INVALID_TOKEN',
+      message: 'Token inválido o expirado' 
+    });
   }
 }

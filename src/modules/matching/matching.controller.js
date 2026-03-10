@@ -1,38 +1,36 @@
-// const matchingService = require('./matching.service');
-// const {offerId} = req.params;
-// const [aiTop] = req.query
+import { runMatching } from "./matching.service.js";
 
-// const results = await matchingService.runMatching(offerId, aiTop);
+export async function runMatchingController(req, res, next) {
 
-// async function runMatching(req, res, next) {
-//   try {
-//     const { offerId } = req.params;
-//     const { aiTop } = req.query;
+  try {
 
-//     if (!offerId) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'offerId is required',
-//       });
-//     }
+    const { offerId } = req.params;
+    const { aiTop } = req.query;
 
-//     // Ahora el service retorna un objeto
-//     const { ranking, aiCandidates } =
-//       await matchingService.runMatching(offerId, aiTop);
+    if (!offerId) {
+      return res.status(400).json({
+        success: false,
+        message: "offerId is required"
+      });
+    }
 
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Matching executed successfully',
-//       total_candidates: ranking.length,
-//       ranking,
-//       ai_evaluation_candidates: aiCandidates
-//     });
+    const { ranking, aiCandidates } =
+      await runMatching(offerId, aiTop);
 
-//   } catch (error) {
-//     next(error);
-//   }
-// }
+    return res.status(200).json({
+      success: true,
+      message: "Matching executed successfully",
+      total_candidates: ranking.length,
+      ranking,
+      ai_evaluation_candidates: aiCandidates
+    });
 
-// module.exports = {
-//     runMatching,
-// }
+  } catch (error) {
+
+    console.error("Matching controller error:", error);
+
+    next(error);
+
+  }
+
+}

@@ -1,14 +1,11 @@
 import db from "../../config/db.js";
-import aiService from "../ai/ai.service.js";
+import { evaluateCandidate } from "../ai/ai.service.js";
 
-/**
- * Matching usando la función SQL optimizada
- */
 export async function runMatching(offerId, aiTop = 3) {
 
   try {
 
-    // Obtener ranking desde PostgreSQL
+    // Obtener ranking desde la función SQL
     const query = `
       SELECT *
       FROM get_candidate_matches($1)
@@ -29,12 +26,22 @@ export async function runMatching(offerId, aiTop = 3) {
     // Top candidatos para IA
     const topCandidates = ranking.slice(0, aiTop);
 
-    //Evaluación IA (opcional)
+    // Obtener oferta para contexto IA
+    const offerQuery = `
+      SELECT *
+      FROM job_offers
+      WHERE id = $1
+    `;
+
+    const offerResult = await db.query(offerQuery, [offerId]);
+    const offer = offerResult.rows[0];
+
+    // Evaluación IA
     for (const candidate of topCandidates) {
 
-      const aiResult = await aiService.evaluateCandidate(
-        offerId,
-        candidate.candidate_id,
+      const aiResult = await evaluateCandidate(
+        offer,
+        candidate,
         candidate.final_match_percentage
       );
 
@@ -48,6 +55,7 @@ export async function runMatching(offerId, aiTop = 3) {
 
         candidate.adjusted_score =
           Number(adjustedScore.toFixed(2));
+
       }
 
     }
@@ -62,9 +70,7 @@ export async function runMatching(offerId, aiTop = 3) {
     console.error("Matching service error:", error);
 
     throw error;
-  }
-}
 
-module.exports = {
-  runMatching,
-};
+  }
+
+}
