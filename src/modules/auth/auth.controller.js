@@ -71,7 +71,8 @@ async function login(req, res) {
         id: user.id,
         email: user.email,
         role: user.role
-      }
+      },
+      token
     });
 
   } catch (error) {
