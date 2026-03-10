@@ -1,7 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const matchingController = require('./matching.controller');
+import { Router } from "express";
+import { getMatchesByOffer } from "./matching.controller.js";
 
-router.post('/run-matching/:offerId', matchingController.runMatching);
+const router = Router();
 
-module.exports = router;
+router.get(
+  "/job-offers/:offerId/matches",
+  getMatchesByOffer
+);
+
+export default router;
