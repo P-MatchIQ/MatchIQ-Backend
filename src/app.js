@@ -6,10 +6,14 @@ import cookieParser from 'cookie-parser'
 import authRoutes from './modules/auth/auth.routes.js'
 import candidateRoutes from './modules/cadidate/candidate.routes.js';
 import offerRoutes from './modules/offers/offers.routes.js';
+import companyRoutes from './modules/company/company.routes.js';
+import catalogRoutes from './modules/catalog/catalog.routes.js';
+import adminRoutes from './modules/admin/admin.routes.js';
+
 
 const app = express()
 
-// ✅ Parsear orígenes permitidos desde variables de entorno
+// Parsear orígenes permitidos desde variables de entorno
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',').map(url => url.trim())
   : ['http://localhost:3000'];
@@ -22,7 +26,7 @@ const allowedHeaders = process.env.ALLOWED_HEADERS
   ? process.env.ALLOWED_HEADERS.split(',').map(header => header.trim())
   : ['Content-Type', 'Authorization'];
 
-// ✅ Middlewares globales PRIMERO
+//  Middlewares globales PRIMERO
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
@@ -38,4 +42,9 @@ app.use(cookieParser());      // ← Parsear cookies antes de las rutas
 app.use('/auth', authRoutes);
 app.use('/candidate', candidateRoutes);
 app.use('/offers', offerRoutes);
+app.use('/company', companyRoutes);
+app.use('/catalog', catalogRoutes);
+app.use('/admin', adminRoutes);
+
+
 export default app;

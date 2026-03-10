@@ -37,6 +37,12 @@ export function validateUpdateCategories({ category_ids }) {
     throw new Error('Debes seleccionar al menos una categoría');
   }
 
+
+  for (const id of category_ids) {
+    if (typeof id !== 'string' || id.trim() === '') {
+      throw new Error('Cada category_id debe ser un UUID válido');
+    }
+  }
 }
 
 export function validateUpdateSkills({ skills }) {
@@ -57,6 +63,10 @@ export function validateUpdateSkills({ skills }) {
       throw new Error('Cada skill debe ser un objeto con skill_id y level');
     }
 
+
+    if (!skill.skill_id || typeof skill.skill_id !== 'string' || skill.skill_id.trim() === '') {
+      throw new Error('Cada skill debe tener un skill_id válido');
+    }
 
     if (skill.level === undefined || skill.level === null) {
       throw new Error('Cada skill debe tener un level');
