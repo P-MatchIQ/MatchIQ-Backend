@@ -9,9 +9,21 @@ import offerRoutes from './modules/offers/offers.routes.js';
 import companyRoutes from './modules/company/company.routes.js';
 import catalogRoutes from './modules/catalog/catalog.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
+import matchingRoutes from "./modules/matching/matching.routes.js";
 
 
-const app = express()
+const app = express();
+// const matchingRoutes = require('./modules/matching/matching.routes');
+
+
+// Middlewares globales
+app.use(cors());
+app.use(helmet());
+app.use(morgan('dev'));
+app.use(express.json());
+app.use('/auth', authRoutes);
+app.use('/matching', matchingRoutes);
+
 
 // Parsear orígenes permitidos desde variables de entorno
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
@@ -47,4 +59,8 @@ app.use('/catalog', catalogRoutes);
 app.use('/admin', adminRoutes);
 
 
+
 export default app;
+
+
+
