@@ -29,6 +29,7 @@ export function validateCreateOffer({
     throw new Error('Debes indicar al menos una categoría requerida');
   }
 
+
   for (const id of category_ids) {
     if (typeof id !== 'string' || id.trim() === '') {
       throw new Error('Cada category_id debe ser un UUID válido');
@@ -38,6 +39,7 @@ export function validateCreateOffer({
   if (!skill_ids || !Array.isArray(skill_ids) || skill_ids.length === 0) {
     throw new Error('Debes indicar al menos un skill requerido');
   }
+
 
   for (const id of skill_ids) {
     if (typeof id !== 'string' || id.trim() === '') {
