@@ -6,13 +6,11 @@ import cookieParser from 'cookie-parser'
 import authRoutes from './modules/auth/auth.routes.js'
 import candidateRoutes from './modules/cadidate/candidate.routes.js';
 import offerRoutes from './modules/offers/offers.routes.js';
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const app = express()
-
-// ✅ Parsear orígenes permitidos desde variables de entorno
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',').map(url => url.trim())
-  : ['http://localhost:3000'];
 
 const allowedMethods = process.env.ALLOWED_METHODS 
   ? process.env.ALLOWED_METHODS.split(',').map(method => method.trim())
@@ -24,15 +22,31 @@ const allowedHeaders = process.env.ALLOWED_HEADERS
 
 // ✅ Middlewares globales PRIMERO
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: allowedMethods,
-  allowedHeaders: allowedHeaders
+  origin: function(origin, callback) {
+
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "http://127.0.0.1:5501",
+      "http://localhost:5501"
+    ];
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+
+  },
+  credentials: true
 }));
+
+
+app.options('/', cors());
+
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
-app.use(cookieParser());      // ← Parsear cookies antes de las rutas
+app.use(cookieParser());
 
 // Rutas DESPUÉS
 app.use('/auth', authRoutes);

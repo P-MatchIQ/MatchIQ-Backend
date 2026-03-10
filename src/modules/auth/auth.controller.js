@@ -52,18 +52,17 @@ async function login(req, res) {
 
     // Obtener token del servicio
     const { token, user } = await authService.login({ email, password });
-
-    // ✅ Crear cookie HTTP-only con duración según rememberMe
-    const maxAge = rememberMe 
-      ? 30 * 24 * 60 * 60 * 1000  // 30 días
-      : 24 * 60 * 60 * 1000;       // 24 horas
-
-    res.cookie('token', token, {
+ 
+    const cookieOptions = {
       httpOnly: true,        // 🔒 No accesible desde JavaScript
-      secure: process.env.NODE_ENV === 'production',  // Solo HTTPS en prod
-      sameSite: 'strict',    // 🛡️ Protege contra CSRF
-      maxAge: maxAge
-    });
+      secure: false,  
+      sameSite: 'lax'
+    }
+    //if (rememberMe) {
+    //  cookieOptions.maxAge = 30 * 24 * 60 * 60 * 
+    // 1000; // 30 días
+  //}
+    res.cookie('token', token, cookieOptions);
 
     // Responder con datos del usuario (sin el token en la respuesta)
     return res.status(200).json({ 
@@ -89,8 +88,8 @@ async function logout(req, res) {
   try {
     res.clearCookie('token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+      secure: false,
+      sameSite: 'lax'
     });
 
     return res.status(200).json({ 
