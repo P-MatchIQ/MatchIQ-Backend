@@ -70,7 +70,7 @@ Dashboard empresa
 * JWT (JSON Web Token)
 * Roles:
 
-  * Admin
+  * Admin (puede autenticarse sin registro de usuario mediante credenciales configuradas en variables de entorno `ADMIN_EMAIL` y `ADMIN_PASSWORD`)
   * Empresa
   * Candidato
 
