@@ -1,33 +1,48 @@
-import openai from "./OpenAI.API.js";
+import openai from "./openai.API.js";
 
-export async function evaluateCandidate(offer, candidate, baseScore) {
+export async function evaluateTopCandidates(offer, candidates) {
 
   try {
 
+    const candidatesData = candidates.map((c, index) => `
+Candidate ${index + 1}
+id: ${c.candidate_id}
+match_score: ${c.final_match_percentage}
+experience_years: ${c.experience_years}
+english_level: ${c.english_level}
+skills: ${c.matched_skills}
+`).join("\n");
+
+
     const prompt = `
-Eres un experto en reclutamiento técnico.
+You are an expert technical recruiter.
 
-Oferta:
-Título: ${offer.title}
-Descripción: ${offer.description}
-Experiencia mínima: ${offer.min_experience_years}
-Nivel inglés requerido: ${offer.required_english_level}
+Analyze the following job offer and the top candidates selected by the system.
 
-Candidato:
-Experiencia: ${candidate.experience_years}
-Nivel inglés: ${candidate.english_level}
-Skills: ${candidate.skills?.join(", ")}
+JOB OFFER
+Title: ${offer.title}
+Description: ${offer.description}
+Minimum experience: ${offer.min_experience_years}
+Required English level: ${offer.required_english_level}
 
-Score matemático inicial: ${baseScore}
+TOP CANDIDATES
+${candidatesData}
 
-Devuelve SOLO JSON válido:
+Explain briefly why each candidate is a good or weak match.
+
+Return ONLY valid JSON with this structure:
 
 {
- "fit_score": number,
- "summary": string,
- "strengths": string[],
- "risks": string[],
- "recommendation": "strong" | "moderate" | "weak"
+ "candidates": [
+   {
+     "candidate_id": "string",
+     "fit_score": number,
+     "insight": "short recruiter explanation",
+     "strengths": ["string"],
+     "risks": ["string"],
+     "recommendation": "strong" | "moderate" | "weak"
+   }
+ ]
 }
 `;
 
@@ -38,7 +53,7 @@ Devuelve SOLO JSON válido:
       messages: [
         {
           role: "system",
-          content: "Eres un experto en reclutamiento técnico."
+          content: "You are an expert technical recruiter."
         },
         {
           role: "user",
@@ -53,7 +68,7 @@ Devuelve SOLO JSON válido:
 
   } catch (error) {
 
-    console.error("OpenAI evaluation error:", error.message);
+    console.error("AI evaluation error:", error.message);
     return null;
 
   }

@@ -1,11 +1,15 @@
 import db from "../../config/db.js";
-import { evaluateCandidate } from "../ai/ai.service.js";
+import { evaluateTopCandidates } from "../ai/ai.service.js";
 
-export async function runMatching(offerId, aiTop = 3) {
+export async function runMatching(offerId, aiTop = 5) {
 
   try {
 
-    // Obtener ranking desde la función SQL
+    // =========================================
+    // 1️⃣ Obtener ranking desde PostgreSQL
+    // (tu función ya trae LIMIT 20)
+    // =========================================
+
     const query = `
       SELECT *
       FROM get_candidate_matches($1)
@@ -16,19 +20,19 @@ export async function runMatching(offerId, aiTop = 3) {
 
     const ranking = result.rows;
 
-    if (!ranking.length) {
+    if (!ranking || ranking.length === 0) {
       return {
         ranking: [],
         aiCandidates: []
       };
     }
 
-    // Top candidatos para IA
-    const topCandidates = ranking.slice(0, aiTop);
+    // =========================================
+    // 2️⃣ Obtener datos de la oferta
+    // =========================================
 
-    // Obtener oferta para contexto IA
     const offerQuery = `
-      SELECT *
+      SELECT id, title, description, min_experience_years, required_english_level
       FROM job_offers
       WHERE id = $1
     `;
@@ -36,29 +40,54 @@ export async function runMatching(offerId, aiTop = 3) {
     const offerResult = await db.query(offerQuery, [offerId]);
     const offer = offerResult.rows[0];
 
-    // Evaluación IA
-    for (const candidate of topCandidates) {
+    // =========================================
+    // 3️⃣ Tomar Top candidatos para IA
+    // =========================================
 
-      const aiResult = await evaluateCandidate(
-        offer,
-        candidate,
-        candidate.final_match_percentage
-      );
+    const topCandidates = ranking.slice(0, aiTop);
 
-      if (aiResult) {
+    // =========================================
+    // 4️⃣ Enviar candidatos a la IA
+    // =========================================
 
-        candidate.ai_feedback = aiResult;
+    const aiResult = await evaluateTopCandidates(
+      offer,
+      topCandidates
+    );
 
-        const adjustedScore =
-          candidate.final_match_percentage * 0.9 +
-          aiResult.fit_score * 0.1;
+    // =========================================
+    // 5️⃣ Integrar feedback de IA
+    // =========================================
 
-        candidate.adjusted_score =
-          Number(adjustedScore.toFixed(2));
+    if (aiResult && aiResult.candidates) {
+
+      for (const candidate of topCandidates) {
+
+        const aiCandidate = aiResult.candidates.find(
+          c => c.candidate_id === candidate.candidate_id
+        );
+
+        if (aiCandidate) {
+
+          candidate.ai_feedback = aiCandidate;
+
+          // score combinado
+          const adjustedScore =
+            candidate.final_match_percentage * 0.9 +
+            aiCandidate.fit_score * 0.1;
+
+          candidate.adjusted_score =
+            Number(adjustedScore.toFixed(2));
+
+        }
 
       }
 
     }
+
+    // =========================================
+    // 6️⃣ Retornar resultados
+    // =========================================
 
     return {
       ranking,
