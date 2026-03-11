@@ -9,6 +9,8 @@ npm-shrinkwrap.json
 yarn-error.log
 yarn.lock
 
+.env
+
 # Coveralls
 .nyc_output
 coverage
