@@ -5,4 +5,4 @@ const router = Router();
 
 router.get("/job-offers/:offerId/matches", runMatchingController);
 
-export default router; 
+export default router;
