@@ -2,7 +2,7 @@ import pool from '../../config/db.js';
 
 async function getProfile(userId) {
   const profileResult = await pool.query(
-    `SELECT cp.id, cp.experience_years, cp.seniority, cp.english_level, cp.created_at
+    `SELECT cp.id, cp.first_name, cp.last_name, cp.experience_years, cp.seniority, cp.english_level, cp.created_at
      FROM candidate_profiles cp
      WHERE cp.user_id = $1`,
     [userId]
@@ -38,11 +38,20 @@ async function getProfile(userId) {
   };
 }
 
-async function updateProfile(userId, { experience_years, seniority, english_level }) {
+async function updateProfile(userId, { experience_years, seniority, english_level, first_name, last_name }) {
+   console.log("updateProfile called with:", { userId, first_name, last_name, experience_years, seniority, english_level });
   const fields = [];
   const values = [];
   let idx = 1;
 
+  if (first_name !== undefined) {
+    fields.push(`first_name = $${idx++}`);
+    values.push(first_name);
+  }
+  if (last_name !== undefined) {
+    fields.push(`last_name = $${idx++}`);
+    values.push(last_name);
+  }
   if (experience_years !== undefined) {
     fields.push(`experience_years = $${idx++}`);
     values.push(experience_years);
@@ -66,7 +75,7 @@ async function updateProfile(userId, { experience_years, seniority, english_leve
     `UPDATE candidate_profiles
      SET ${fields.join(', ')}
      WHERE user_id = $${idx}
-     RETURNING id, experience_years, seniority, english_level`,
+     RETURNING id, first_name, last_name, experience_years, seniority, english_level`,
     values
   );
 

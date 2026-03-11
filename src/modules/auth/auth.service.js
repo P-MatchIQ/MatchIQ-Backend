@@ -2,6 +2,8 @@ import pool from '../../config/db.js';
 import { hashPassword } from '../../utils/hash.js';
 import { generateAccessToken } from '../../utils/jwt.js';
 import bcrypt from 'bcrypt';
+import { sendPasswordResetEmail } from '../../utils/emails.js';
+import crypto from 'crypto';
 
 async function register({ email, password, role }) {
   const client = await pool.connect();
@@ -136,8 +138,74 @@ async function getUserById(userId) {
   }
 }
 
+
+
+async function forgotPassword({ email }) {
+  const result = await pool.query(
+    'SELECT id, email FROM users WHERE email = $1 AND is_active = true',
+    [email]
+  );
+
+  // Aunque no exista respondemos igual para no revelar emails registrados
+  if (!result.rows.length) return { ok: true };
+
+  const user = result.rows[0];
+
+  // Invalidar tokens anteriores
+  await pool.query(
+    'UPDATE password_resets SET used = true WHERE user_id = $1 AND used = false',
+    [user.id]
+  );
+
+  // Generar token seguro
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+  await pool.query(
+    `INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3)`,
+    [user.id, token, expiresAt]
+  );
+
+  const resetUrl = `${process.env.FRONTEND_URL}/public/resetPassword.html?token=${token}`;
+  await sendPasswordResetEmail({ to: user.email, resetUrl });
+
+  return { ok: true };
+}
+
+async function resetPassword({ token, newPassword }) {
+  const result = await pool.query(
+    `SELECT pr.*, u.email FROM password_resets pr
+     JOIN users u ON u.id = pr.user_id
+     WHERE pr.token = $1
+       AND pr.used = false
+       AND pr.expires_at > NOW()`,
+    [token]
+  );
+
+  if (!result.rows.length) {
+    throw new Error('El enlace es inválido o ha expirado.');
+  }
+
+  const reset = result.rows[0];
+  const hashedPassword = await hashPassword(newPassword);
+
+  await pool.query(
+    'UPDATE users SET password_hash = $1 WHERE id = $2',
+    [hashedPassword, reset.user_id]
+  );
+
+  await pool.query(
+    'UPDATE password_resets SET used = true WHERE id = $1',
+    [reset.id]
+  );
+
+  return { ok: true };
+}
+
 export const authService = {
   register,
   login,
-  getUserById
-}
+  getUserById,
+  forgotPassword,
+  resetPassword
+};

@@ -222,11 +222,61 @@ async function checkMe(req, res) {
 }
 
 
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'El email es obligatorio.' });
+    }
+
+    await authService.forgotPassword({ email });
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Si el email está registrado, recibirás un enlace en breve.'
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+async function resetPassword(req, res) {
+  try {
+    const { token, newPassword, confirmPassword } = req.body;
+
+    if (!token || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'La contraseña debe tener mínimo 6 caracteres.' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'Las contraseñas no coinciden.' });
+    }
+
+    await authService.resetPassword({ token, newPassword });
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Contraseña actualizada exitosamente.'
+    });
+
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+}
+
 export const authController = {
   registerCandidate,
   registerCompany,
   login,
   logout,
   me,
-  checkMe
+  checkMe,
+  forgotPassword,
+  resetPassword
 };
