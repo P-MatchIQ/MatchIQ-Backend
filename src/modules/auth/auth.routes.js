@@ -8,6 +8,8 @@ const router = Router();
 router.post('/register/candidate', authController.registerCandidate);
 router.post('/register/company', authController.registerCompany);
 router.post('/login', authController.login);
+router.post('/forgotPassword', authController.forgotPassword);
+router.post('/resetPassword', authController.resetPassword);
 
 // � Ruta pública para verificar sesión (sin autenticación requerida en la ruta)
 // Pero lee la cookie si existe
