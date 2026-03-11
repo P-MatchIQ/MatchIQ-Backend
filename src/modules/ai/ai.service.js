@@ -1,33 +1,39 @@
-/* import openai from "./OpenAI.API.js";
+import openai from "./openai.API.js";
 
-export async function evaluateCandidate(offer, candidate, baseScore) {
+// 👇 Ahora evalúa UN solo candidato en lugar de todos juntos
+export async function evaluateSingleCandidate(offer, candidate) {
 
   try {
 
     const prompt = `
-Eres un experto en reclutamiento técnico.
+You are an expert technical recruiter.
 
-Oferta:
-Título: ${offer.title}
-Descripción: ${offer.description}
-Experiencia mínima: ${offer.min_experience_years}
-Nivel inglés requerido: ${offer.required_english_level}
+Analyze the following job offer and the candidate selected by the system.
 
-Candidato:
-Experiencia: ${candidate.experience_years}
-Nivel inglés: ${candidate.english_level}
-Skills: ${candidate.skills?.join(", ")}
+JOB OFFER
+Title: ${offer.title}
+Description: ${offer.description}
+Minimum experience: ${offer.min_experience_years}
+Required English level: ${offer.required_english_level}
 
-Score matemático inicial: ${baseScore}
+CANDIDATE
+id: ${candidate.candidate_id}
+match_score: ${candidate.final_match_percentage}
+experience_years: ${candidate.experience_years}
+english_level: ${candidate.english_level}
+skills: ${candidate.matched_skills}
 
-Devuelve SOLO JSON válido:
+Explain briefly why this candidate is a good or weak match.
+
+Return ONLY valid JSON with this structure:
 
 {
- "fit_score": number,
- "summary": string,
- "strengths": string[],
- "risks": string[],
- "recommendation": "strong" | "moderate" | "weak"
+  "candidate_id": "string",
+  "fit_score": number,
+  "insight": "short recruiter explanation",
+  "strengths": ["string"],
+  "risks": ["string"],
+  "recommendation": "strong" | "moderate" | "weak"
 }
 `;
 
@@ -38,7 +44,7 @@ Devuelve SOLO JSON válido:
       messages: [
         {
           role: "system",
-          content: "Eres un experto en reclutamiento técnico."
+          content: "You are an expert technical recruiter."
         },
         {
           role: "user",
@@ -49,13 +55,16 @@ Devuelve SOLO JSON válido:
 
     const content = response.choices[0].message.content;
 
+    // 👇 Retorna directamente el objeto del candidato
     return JSON.parse(content);
 
   } catch (error) {
 
-    console.error("OpenAI evaluation error:", error.message);
+    console.error("AI evaluation error:", error.message);
+
+    // 👇 Si falla un candidato, retorna null sin romper los demás
     return null;
 
   }
 
-} */
+}

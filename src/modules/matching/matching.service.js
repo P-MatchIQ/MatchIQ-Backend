@@ -1,11 +1,11 @@
-/* import db from "../../config/db.js";
-import { evaluateCandidate } from "../ai/ai.service.js";
+import db from "../../config/db.js";
+import { evaluateSingleCandidate } from "../ai/ai.service.js";
 
+// 👇 aiTop baja a 3 por defecto en lugar de 5
 export async function runMatching(offerId, aiTop = 3) {
 
   try {
 
-    // Obtener ranking desde la función SQL
     const query = `
       SELECT *
       FROM get_candidate_matches($1)
@@ -16,19 +16,15 @@ export async function runMatching(offerId, aiTop = 3) {
 
     const ranking = result.rows;
 
-    if (!ranking.length) {
+    if (!ranking || ranking.length === 0) {
       return {
         ranking: [],
         aiCandidates: []
       };
     }
 
-    // Top candidatos para IA
-    const topCandidates = ranking.slice(0, aiTop);
-
-    // Obtener oferta para contexto IA
     const offerQuery = `
-      SELECT *
+      SELECT id, title, description, min_experience_years, required_english_level
       FROM job_offers
       WHERE id = $1
     `;
@@ -36,25 +32,30 @@ export async function runMatching(offerId, aiTop = 3) {
     const offerResult = await db.query(offerQuery, [offerId]);
     const offer = offerResult.rows[0];
 
-    // Evaluación IA
-    for (const candidate of topCandidates) {
+    const topCandidates = ranking.slice(0, aiTop);
 
-      const aiResult = await evaluateCandidate(
-        offer,
-        candidate,
-        candidate.final_match_percentage
-      );
+    // 👇 Lanza todas las llamadas a la IA AL MISMO TIEMPO en paralelo
+    // En lugar de esperar una por una, esperamos que todas terminen juntas
+    const aiResults = await Promise.all(
+      topCandidates.map(candidate => evaluateSingleCandidate(offer, candidate))
+    );
 
-      if (aiResult) {
+    // 👇 Integramos el feedback usando el índice del array
+    // Ya no necesitamos buscar por candidate_id porque el orden se mantiene
+    for (let i = 0; i < topCandidates.length; i++) {
 
-        candidate.ai_feedback = aiResult;
+      const aiCandidate = aiResults[i];
+
+      // 👇 Solo asignamos si la IA no retornó null para ese candidato
+      if (aiCandidate) {
+
+        topCandidates[i].ai_feedback = aiCandidate;
 
         const adjustedScore =
-          candidate.final_match_percentage * 0.9 +
-          aiResult.fit_score * 0.1;
+          topCandidates[i].final_match_percentage * 0.9 +
+          aiCandidate.fit_score * 0.1;
 
-        candidate.adjusted_score =
-          Number(adjustedScore.toFixed(2));
+        topCandidates[i].adjusted_score = Number(adjustedScore.toFixed(2));
 
       }
 

@@ -9,6 +9,7 @@ import offerRoutes from './modules/offers/offers.routes.js';
 import companyRoutes from './modules/company/company.routes.js';
 import catalogRoutes from './modules/catalog/catalog.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
+import matchingRoutes from "./modules/matching/matching.routes.js";
 
 const app = express();
 
@@ -44,5 +45,6 @@ app.use('/offers', offerRoutes);
 app.use('/company', companyRoutes);
 app.use('/catalog', catalogRoutes);
 app.use('/admin', adminRoutes);
+app.use('/matching', matchingRoutes);
 
 export default app;
