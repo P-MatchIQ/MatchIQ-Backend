@@ -1,14 +1,10 @@
 import db from "../../config/db.js";
-import { evaluateTopCandidates } from "../ai/ai.service.js";
+import { evaluateSingleCandidate } from "../ai/ai.service.js";
 
-export async function runMatching(offerId, aiTop = 5) {
+// 👇 aiTop baja a 3 por defecto en lugar de 5
+export async function runMatching(offerId, aiTop = 3) {
 
   try {
-
-    // =========================================
-    // 1️⃣ Obtener ranking desde PostgreSQL
-    // (tu función ya trae LIMIT 20)
-    // =========================================
 
     const query = `
       SELECT *
@@ -27,10 +23,6 @@ export async function runMatching(offerId, aiTop = 5) {
       };
     }
 
-    // =========================================
-    // 2️⃣ Obtener datos de la oferta
-    // =========================================
-
     const offerQuery = `
       SELECT id, title, description, min_experience_years, required_english_level
       FROM job_offers
@@ -40,54 +32,34 @@ export async function runMatching(offerId, aiTop = 5) {
     const offerResult = await db.query(offerQuery, [offerId]);
     const offer = offerResult.rows[0];
 
-    // =========================================
-    // 3️⃣ Tomar Top candidatos para IA
-    // =========================================
-
     const topCandidates = ranking.slice(0, aiTop);
 
-    // =========================================
-    // 4️⃣ Enviar candidatos a la IA
-    // =========================================
-
-    const aiResult = await evaluateTopCandidates(
-      offer,
-      topCandidates
+    // 👇 Lanza todas las llamadas a la IA AL MISMO TIEMPO en paralelo
+    // En lugar de esperar una por una, esperamos que todas terminen juntas
+    const aiResults = await Promise.all(
+      topCandidates.map(candidate => evaluateSingleCandidate(offer, candidate))
     );
 
-    // =========================================
-    // 5️⃣ Integrar feedback de IA
-    // =========================================
+    // 👇 Integramos el feedback usando el índice del array
+    // Ya no necesitamos buscar por candidate_id porque el orden se mantiene
+    for (let i = 0; i < topCandidates.length; i++) {
 
-    if (aiResult && aiResult.candidates) {
+      const aiCandidate = aiResults[i];
 
-      for (const candidate of topCandidates) {
+      // 👇 Solo asignamos si la IA no retornó null para ese candidato
+      if (aiCandidate) {
 
-        const aiCandidate = aiResult.candidates.find(
-          c => c.candidate_id === candidate.candidate_id
-        );
+        topCandidates[i].ai_feedback = aiCandidate;
 
-        if (aiCandidate) {
+        const adjustedScore =
+          topCandidates[i].final_match_percentage * 0.9 +
+          aiCandidate.fit_score * 0.1;
 
-          candidate.ai_feedback = aiCandidate;
-
-          // score combinado
-          const adjustedScore =
-            candidate.final_match_percentage * 0.9 +
-            aiCandidate.fit_score * 0.1;
-
-          candidate.adjusted_score =
-            Number(adjustedScore.toFixed(2));
-
-        }
+        topCandidates[i].adjusted_score = Number(adjustedScore.toFixed(2));
 
       }
 
     }
-
-    // =========================================
-    // 6️⃣ Retornar resultados
-    // =========================================
 
     return {
       ranking,
