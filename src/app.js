@@ -21,8 +21,7 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
-app.use('/auth', authRoutes);
-app.use('/matching', matchingRoutes);
+
 
 
 // Parsear orígenes permitidos desde variables de entorno
@@ -57,6 +56,7 @@ app.use('/offers', offerRoutes);
 app.use('/company', companyRoutes);
 app.use('/catalog', catalogRoutes);
 app.use('/admin', adminRoutes);
+app.use('/matching', matchingRoutes);
 
 
 
