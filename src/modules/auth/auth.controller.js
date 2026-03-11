@@ -61,8 +61,8 @@ async function login(req, res) {
     res.cookie('token', token, {
       httpOnly: true,        // 🔒 No accesible desde JavaScript
       secure: process.env.NODE_ENV === 'production',  // Solo HTTPS en prod
-      sameSite: 'strict',    // 🛡️ Protege contra CSRF
-      maxAge: maxAge
+      sameSite: process.env.NODE_ENV === 'production'? 'none': 'lax',    // 🛡️ Protege contra CSRF
+      maxAge
     });
 
     // Responder con datos del usuario (sin el token en la respuesta)
