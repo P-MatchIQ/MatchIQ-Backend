@@ -1,4 +1,4 @@
-import db from "../../config/db.js";
+/* import db from "../../config/db.js";
 import { evaluateCandidate } from "../ai/ai.service.js";
 
 export async function runMatching(offerId, aiTop = 3) {
@@ -73,4 +73,4 @@ export async function runMatching(offerId, aiTop = 3) {
 
   }
 
-}
+} */

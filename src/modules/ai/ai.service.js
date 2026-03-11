@@ -1,4 +1,4 @@
-import openai from "./OpenAI.API.js";
+/* import openai from "./OpenAI.API.js";
 
 export async function evaluateCandidate(offer, candidate, baseScore) {
 
@@ -58,4 +58,4 @@ Devuelve SOLO JSON válido:
 
   }
 
-}
+} */
