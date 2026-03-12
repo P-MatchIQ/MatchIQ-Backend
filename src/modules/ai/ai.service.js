@@ -1,4 +1,5 @@
 import openai from "./openAI.API.js";
+//Cambio aqui
 
 // 👇 Ahora evalúa UN solo candidato en lugar de todos juntos
 export async function evaluateSingleCandidate(offer, candidate) {
