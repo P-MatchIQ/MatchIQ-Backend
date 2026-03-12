@@ -61,7 +61,7 @@ async function login(req, res) {
     res.cookie('token', token, {
       httpOnly: true,        // 🔒 No accesible desde JavaScript
       secure: process.env.NODE_ENV === 'production',  // Solo HTTPS en prod
-      sameSite: process.env.NODE_ENV === 'production'? 'none': 'lax',    // 🛡️ Protege contra CSRF
+      sameSite: process.env.NODE_ENV === 'production'? 'none': 'lax',    // 🛡️ Protege contra CS888RF
       maxAge
     });
 
