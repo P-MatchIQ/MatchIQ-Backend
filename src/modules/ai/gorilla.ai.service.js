@@ -1,4 +1,4 @@
-import openai from "./OpenAI.API.js";
+import openai from "./openAI.API.js";
 
 
 /**
