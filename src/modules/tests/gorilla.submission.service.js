@@ -44,24 +44,35 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
   }
 
   // 3️⃣ Insert submission with status 'pending'
-  const submissionInsert = await db.query(
-    `INSERT INTO test_submissions
-       (test_id, candidate_id, submitted_code, score, feedback, status, started_at, submitted_at)
-     VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), NOW())
-     RETURNING *`,
-    [
-      testId,
-      candidateId,
-      JSON.stringify(answers),
-      0,
-      null,
-    ]
-  );
-
-  const submission = submissionInsert.rows[0];
+  let submission;
+  try {
+    const submissionInsert = await db.query(
+      `INSERT INTO test_submissions
+         (test_id, candidate_id, submitted_code, score, feedback, status, started_at, submitted_at)
+       VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), NOW())
+       RETURNING *`,
+      [
+        testId,
+        candidateId,
+        JSON.stringify(answers),
+        0,
+        null,
+      ]
+    );
+    submission = submissionInsert.rows[0];
+  } catch (dbError) {
+    console.error("[GorillaSubmission] DB insert error:", dbError.message);
+    throw new Error(`Error saving submission: ${dbError.message}`);
+  }
 
   // 4️⃣ Evaluate answers
-  const evaluation = await evaluateGorillaAnswers(testData, answers);
+  let evaluation;
+  try {
+    evaluation = await evaluateGorillaAnswers(testData, answers);
+  } catch (evalError) {
+    console.error("[GorillaSubmission] Evaluation error:", evalError.message);
+    throw new Error(`Error evaluating answers: ${evalError.message}`);
+  }
 
   // 5️⃣ Update submission with evaluation results
   const updatedSubmission = await db.query(

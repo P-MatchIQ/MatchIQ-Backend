@@ -30,9 +30,12 @@ async function createOffer(userId, {
     const companyId = companyResult.rows[0].id;
 
     // 2️⃣ Verificar que las categorías existen
+    const catPlaceholders = category_ids.map(
+      (_, i) => `$${i + 1}`
+    ).join(', ');
     const categoryCheck = await client.query(
-      'SELECT id FROM categories WHERE id = ANY($1)',
-      [category_ids]
+      `SELECT id FROM categories WHERE id IN (${catPlaceholders})`,
+      category_ids
     );
 
     if (categoryCheck.rows.length !== category_ids.length) {
@@ -40,9 +43,12 @@ async function createOffer(userId, {
     }
 
     // 3️⃣ Verificar que los skills existen
+    const skillPlaceholders = skill_ids.map(
+      (_, i) => `$${i + 1}`
+    ).join(', ');
     const skillCheck = await client.query(
-      'SELECT id FROM skills WHERE id = ANY($1)',
-      [skill_ids]
+      `SELECT id FROM skills WHERE id IN (${skillPlaceholders})`,
+      skill_ids
     );
 
     if (skillCheck.rows.length !== skill_ids.length) {

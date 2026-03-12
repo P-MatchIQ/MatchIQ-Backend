@@ -1,5 +1,6 @@
 import { offerService } from './offers.service.js';
-import { validateCreateOffer, validateUpdateOffer, validateCancelOffer,} from './offers.validation.js';
+import { validateCreateOffer, validateUpdateOffer, validateCancelOffer } from './offers.validation.js';
+import { generateGorillaTestService } from '../tests/gorilla.test.service.js';
 
 // POST /offers
 async function createOffer(req, res) {
@@ -29,6 +30,7 @@ async function createOffer(req, res) {
       positions_available,
     });
 
+    // 1️⃣ Create the offer — this commits to DB via transaction inside offerService
     const result = await offerService.createOffer(userId, {
       title,
       description,
@@ -39,6 +41,13 @@ async function createOffer(req, res) {
       positions_available,
       category_ids,
       skill_ids,
+    });
+
+    // 2️⃣ Auto-generate Gorilla Test in background (fire-and-forget)
+    // The HTTP response is sent immediately — the test is generated async.
+    // If it fails, the offer still exists and can be retried manually.
+    generateGorillaTestService(result.id, false).catch((err) => {
+      console.error(`[Auto-Test] Error generating test for offer ${result.id}:`, err.message);
     });
 
     return res.status(201).json(result);
@@ -52,11 +61,8 @@ async function createOffer(req, res) {
 async function getMyOffers(req, res) {
   try {
     const userId = req.user.id;
-
     const result = await offerService.getMyOffers(userId);
-
     return res.json(result);
-
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
@@ -73,9 +79,7 @@ async function getOfferById(req, res) {
     }
 
     const result = await offerService.getOfferById(userId, id);
-
     return res.json(result);
-
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
@@ -117,7 +121,6 @@ async function updateOffer(req, res) {
     });
 
     return res.json(result);
-
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
@@ -134,13 +137,12 @@ async function updateOfferStatus(req, res) {
 
     const result = await offerService.updateOfferStatus(userId, id, { status });
 
-    // Si hay candidatos en proceso, devolver advertencia con 200 para que el frontend confirme
+    // If candidates are in process, return warning with 200 for frontend confirmation
     if (result.warning) {
       return res.status(200).json(result);
     }
 
     return res.json(result);
-
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
@@ -151,11 +153,8 @@ async function forceCancel(req, res) {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-
     const result = await offerService.forceCancel(userId, id);
-
     return res.json(result);
-
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
