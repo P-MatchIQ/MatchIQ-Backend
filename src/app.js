@@ -10,6 +10,7 @@ import companyRoutes from './modules/company/company.routes.js';
 import catalogRoutes from './modules/catalog/catalog.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import matchingRoutes from "./modules/matching/matching.routes.js";
+import gorillaRoutes from "./modules/tests/gorilla.routes.js";
 
 const app = express();
 
@@ -46,5 +47,6 @@ app.use('/company', companyRoutes);
 app.use('/catalog', catalogRoutes);
 app.use('/admin', adminRoutes);
 app.use('/matching', matchingRoutes);
+app.use('/tests', gorillaRoutes);
 
 export default app;
