@@ -1,5 +1,4 @@
 import openai from "./openAI.API.js";
-//Cambio aqui
 
 // Ahora evalúa UN solo candidato en lugar de todos juntos
 export async function evaluateSingleCandidate(offer, candidate) {
@@ -33,7 +32,7 @@ Return ONLY valid JSON with this structure:
   "fit_score": number,
   "insight": "short recruiter explanation",
   "strengths": ["string"],
-  "risks": ["string"],
+  "opportunity for improvement": ["string"],
   "recommendation": "strong" | "moderate" | "weak"
 }
 `;
