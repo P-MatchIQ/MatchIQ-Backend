@@ -20,10 +20,14 @@ router.post('/logout', authenticate, authController.logout);
 router.get('/me-protected', authenticate, authController.me);
 
 // Google OAuth
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email'],
-  session: false,
-}));
+router.get('/google', (req, res, next) => {
+  const role = req.query.role || 'candidate';
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    session: false,
+    state: role,
+  })(req, res, next);
+});
 
 router.get('/google/callback',
   passport.authenticate('google', {
