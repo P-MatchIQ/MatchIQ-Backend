@@ -9,4 +9,4 @@ router.get("/job-offers/:offerId/matches", runMatchingController);
 // La empresa llama a este endpoint cuando selecciona un candidato
 router.post("/job-offers/:offerId/candidates/:candidateId/notify", notifyCandidateController);
 
-export default router; */
+export default router; 
