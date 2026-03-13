@@ -1,5 +1,6 @@
 import { validateRegister } from './auth.validation.js';
 import { authService } from './auth.service.js';
+import { generateAccessToken } from '../../utils/jwt.js';
 
 async function registerCandidate(req, res) {
   try {
@@ -270,6 +271,37 @@ async function resetPassword(req, res) {
   }
 }
 
+async function googleCallback(req, res) {
+  try {
+    const user = req.user;
+
+    const token = generateAccessToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const isProduction = process.env.NODE_ENV === "production";
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 2 * 60 * 60 * 1000,
+    });
+
+    if (user.role === "candidate") {
+      return res.redirect(`${process.env.FRONTEND_URL}/public/candidate/dashboard.html`);
+    } else if (user.role === "company") {
+      return res.redirect(`${process.env.FRONTEND_URL}/public/company/dashboard.html`);
+    } else {
+      return res.redirect(`${process.env.FRONTEND_URL}/public/login.html`);
+    }
+  } catch (error) {
+    return res.redirect(`${process.env.FRONTEND_URL}/public/login.html?error=google_failed`);
+  }
+}
+
 export const authController = {
   registerCandidate,
   registerCompany,
@@ -278,5 +310,6 @@ export const authController = {
   me,
   checkMe,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  googleCallback
 };

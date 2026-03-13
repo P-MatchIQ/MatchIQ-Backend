@@ -202,10 +202,56 @@ async function resetPassword({ token, newPassword }) {
   return { ok: true };
 }
 
+async function loginWithGoogle({ googleId, email, firstName, lastName }) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Buscar si ya existe
+    const existing = await client.query(
+      'SELECT id, email, role FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existing.rows.length > 0) {
+      await client.query('COMMIT');
+      return existing.rows[0];
+    }
+
+    // No existe → crear usuario nuevo
+    const newUser = await client.query(
+      `INSERT INTO users (email, password_hash, role, is_active)
+       VALUES ($1, NULL, 'candidate', true)
+       RETURNING id, email, role`,
+      [email]
+    );
+
+    const user = newUser.rows[0];
+
+    // Crear perfil de candidato con nombre de Google
+    await client.query(
+      `INSERT INTO candidate_profiles (user_id, first_name, last_name)
+       VALUES ($1, $2, $3)`,
+      [user.id, firstName, lastName]
+    );
+
+    await client.query('COMMIT');
+    return user;
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export const authService = {
   register,
   login,
   getUserById,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  loginWithGoogle
 };
