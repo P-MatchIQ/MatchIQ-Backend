@@ -23,7 +23,7 @@ async function getProfile(req, res) {
 async function updateProfile(req, res) {
   try {
     const userId = req.user.id;
-    const { experience_years, seniority, english_level } = req.body;
+    const { experience_years, seniority, english_level, first_name, last_name } = req.body;
 
     validateUpdateProfile({ experience_years, seniority, english_level });
 
@@ -31,6 +31,8 @@ async function updateProfile(req, res) {
       experience_years,
       seniority,
       english_level,
+      first_name,
+      last_name,
     });
 
     return res.json(result);
