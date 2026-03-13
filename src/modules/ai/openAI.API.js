@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config(); // 🔹 Debe ser lo primero
+dotenv.config(); // Debe ser lo primero
 
 import OpenAI from "openai";
 

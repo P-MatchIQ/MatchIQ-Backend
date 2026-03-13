@@ -30,7 +30,7 @@ async function createOffer(req, res) {
       positions_available,
     });
 
-    // 1️⃣ Create the offer — this commits to DB via transaction inside offerService
+    // 1. Create the offer — this commits to DB via transaction inside offerService
     const result = await offerService.createOffer(userId, {
       title,
       description,
@@ -43,7 +43,7 @@ async function createOffer(req, res) {
       skill_ids,
     });
 
-    // 2️⃣ Auto-generate Gorilla Test in background (fire-and-forget)
+    // 2. Auto-generate Gorilla Test in background (fire-and-forget)
     // The HTTP response is sent immediately — the test is generated async.
     // If it fails, the offer still exists and can be retried manually.
     generateGorillaTestService(result.id, false).catch((err) => {

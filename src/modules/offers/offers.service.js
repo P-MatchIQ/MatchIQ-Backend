@@ -17,7 +17,7 @@ async function createOffer(userId, {
   try {
     await client.query('BEGIN');
 
-    // 1️⃣ Obtener company_id del usuario autenticado
+    // 1. Obtener company_id del usuario autenticado
     const companyResult = await client.query(
       'SELECT id FROM company_profiles WHERE user_id = $1',
       [userId]
@@ -29,7 +29,7 @@ async function createOffer(userId, {
 
     const companyId = companyResult.rows[0].id;
 
-    // 2️⃣ Verificar que las categorías existen
+    // 2. Verificar que las categorías existen
     const catPlaceholders = category_ids.map(
       (_, i) => `$${i + 1}`
     ).join(', ');
@@ -42,7 +42,7 @@ async function createOffer(userId, {
       throw new Error('Una o más categorías no existen');
     }
 
-    // 3️⃣ Verificar que los skills existen
+    // 3. Verificar que los skills existen
     const skillPlaceholders = skill_ids.map(
       (_, i) => `$${i + 1}`
     ).join(', ');
@@ -55,7 +55,7 @@ async function createOffer(userId, {
       throw new Error('Uno o más skills no existen');
     }
 
-    // 4️⃣ Crear la oferta
+    // 4. Crear la oferta
     const offerResult = await client.query(
       `INSERT INTO job_offers (
         company_id, title, description, salary, modality,
@@ -76,7 +76,7 @@ async function createOffer(userId, {
 
     const offer = offerResult.rows[0];
 
-    // 5️⃣ Insertar categorías de la oferta
+    // 5. Insertar categorías de la oferta
     for (const categoryId of category_ids) {
       await client.query(
         'INSERT INTO offer_categories (offer_id, category_id) VALUES ($1, $2)',
@@ -84,7 +84,7 @@ async function createOffer(userId, {
       );
     }
 
-    // 6️⃣ Insertar skills de la oferta
+    // 6. Insertar skills de la oferta
     for (const skillId of skill_ids) {
       await client.query(
         'INSERT INTO offer_skills (offer_id, skill_id) VALUES ($1, $2)',

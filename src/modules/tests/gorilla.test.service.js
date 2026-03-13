@@ -16,7 +16,7 @@ import { generateGorillaTest } from "../ai/gorilla.ai.service.js";
  */
 export async function generateGorillaTestService(offerId, forceRegenerate = false) {
 
-  // 1️⃣ Fetch offer data needed for the AI prompt
+  // 1. Fetch offer data needed for the AI prompt
   const offerResult = await db.query(
     `SELECT id, title, description, min_experience_years, required_english_level
      FROM job_offers
@@ -27,7 +27,7 @@ export async function generateGorillaTestService(offerId, forceRegenerate = fals
   const offer = offerResult.rows[0];
   if (!offer) throw new Error(`Job offer ${offerId} not found`);
 
-  // 2️⃣ If forceRegenerate, delete previous test for this offer
+  // 2. If forceRegenerate, delete previous test for this offer
   if (forceRegenerate) {
     await db.query(`DELETE FROM tests WHERE offer_id = $1`, [offerId]);
   } else {
@@ -45,11 +45,11 @@ export async function generateGorillaTestService(offerId, forceRegenerate = fals
     }
   }
 
-  // 3️⃣ Generate 15 questions via AI
+  // 3. Generate 15 questions via AI
   // No candidates at offer creation time — AI uses only the offer content
   const aiTest = await generateGorillaTest(offer, []);
 
-  // 4️⃣ Build the JSON payload stored in `description`
+  // 4. Build the JSON payload stored in `description`
   const descriptionPayload = JSON.stringify({
     test_title:      aiTest.test_title,
     total_questions: aiTest.total_questions,
@@ -58,7 +58,7 @@ export async function generateGorillaTestService(offerId, forceRegenerate = fals
     generated_at:    new Date().toISOString(),
   });
 
-  // 5️⃣ INSERT into tests — only the existing columns
+  // 5. INSERT into tests -- only the existing columns
   const insertResult = await db.query(
     `INSERT INTO tests (offer_id, description, time_limit_minutes, created_at)
      VALUES ($1, $2, $3, NOW())

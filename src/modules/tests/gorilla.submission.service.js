@@ -13,7 +13,7 @@ import { evaluateGorillaAnswers } from "../ai/gorilla.ai.service.js";
  */
 export async function submitGorillaTestService(testId, candidateId, answers) {
 
-  // 1️⃣ Fetch the full test (includes correct answers stored in description)
+  // 1. Fetch the full test (includes correct answers stored in description)
   const testResult = await db.query(
     `SELECT * FROM tests WHERE id = $1`,
     [testId]
@@ -30,7 +30,7 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
     throw new Error(`Test ${testId} is not a gorilla test`);
   }
 
-  // 2️⃣ Prevent duplicate submissions
+  // 2. Prevent duplicate submissions
   const existing = await db.query(
     `SELECT id FROM test_submissions
      WHERE test_id = $1 AND candidate_id = $2`,
@@ -43,7 +43,7 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
     );
   }
 
-  // 3️⃣ Insert submission with status 'pending'
+  // 3. Insert submission with status 'pending'
   let submission;
   try {
     const submissionInsert = await db.query(
@@ -65,7 +65,7 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
     throw new Error(`Error saving submission: ${dbError.message}`);
   }
 
-  // 4️⃣ Evaluate answers
+  // 4. Evaluate answers
   let evaluation;
   try {
     evaluation = await evaluateGorillaAnswers(testData, answers);
@@ -74,7 +74,7 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
     throw new Error(`Error evaluating answers: ${evalError.message}`);
   }
 
-  // 5️⃣ Update submission with evaluation results
+  // 5. Update submission with evaluation results
   const updatedSubmission = await db.query(
     `UPDATE test_submissions
      SET

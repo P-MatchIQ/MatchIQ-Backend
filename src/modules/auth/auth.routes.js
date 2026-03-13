@@ -4,7 +4,7 @@ import { authenticate } from '../../middlewares/authenticate.js';
 
 const router = Router();
 
-// 📝 Rutas públicas (sin autenticación)
+// Rutas públicas (sin autenticación)
 router.post('/register/candidate', authController.registerCandidate);
 router.post('/register/company', authController.registerCompany);
 router.post('/login', authController.login);
@@ -15,7 +15,7 @@ router.post('/resetPassword', authController.resetPassword);
 // Pero lee la cookie si existe
 router.get('/me', authController.checkMe);
 
-// 🔒 Rutas protegidas (requieren autenticación)
+// Rutas protegidas (requieren autenticación)
 router.post('/logout', authenticate, authController.logout);
 
 // Ruta alternativa protegida por middleware (si se prefiere)
