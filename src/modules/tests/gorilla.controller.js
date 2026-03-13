@@ -10,6 +10,13 @@ import {
   getCandidateSubmissionService,
 } from "./gorilla.submission.service.js";
 
+import {
+  inviteCandidateService,
+  inviteMultipleCandidatesService,
+  getCandidateInvitationsService,
+  completeInvitationService,
+} from "./gorilla.invitation.service.js";
+
 // ─────────────────────────────────────────────────────────────
 // GET /tests/job-offers/:offerId/gorilla-test
 // Returns test WITHOUT correct answers — for candidates
@@ -111,4 +118,60 @@ export async function getCandidateSubmissionController(req, res) {
     console.error("[GorillaTest] getCandidateSubmissionController:", error.message);
     return res.status(404).json({ success: false, message: error.message });
   }
-} 
+}
+
+// -----------------------------------------------------------------
+// POST /tests/job-offers/:offerId/invite
+// Company invites a candidate (or multiple) to take the test
+// Body: { candidate_id: "..." } or { candidate_ids: [...] }
+// -----------------------------------------------------------------
+export async function inviteCandidateController(req, res) {
+  try {
+    const { offerId } = req.params;
+    const { candidate_id, candidate_ids } = req.body;
+
+    if (candidate_ids && Array.isArray(candidate_ids)) {
+      const results = await inviteMultipleCandidatesService(offerId, candidate_ids);
+      return res.status(200).json({ success: true, results });
+    }
+
+    if (!candidate_id) {
+      return res.status(400).json({ success: false, message: "candidate_id or candidate_ids is required" });
+    }
+
+    const result = await inviteCandidateService(offerId, candidate_id);
+    return res.status(result.alreadyExists ? 200 : 201).json({ success: true, ...result });
+  } catch (error) {
+    console.error("[GorillaTest] inviteCandidateController:", error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// -----------------------------------------------------------------
+// GET /tests/my-invitations
+// Candidate sees their pending/completed test invitations
+// Requires authentication as candidate
+// -----------------------------------------------------------------
+export async function getCandidateInvitationsController(req, res) {
+  try {
+    const userId = req.user.id;
+
+    // Get the candidate_profile id from user id
+    const profileResult = await (await import("../../config/db.js")).default.query(
+      `SELECT id FROM candidate_profiles WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Candidate profile not found" });
+    }
+
+    const candidateProfileId = profileResult.rows[0].id;
+    const invitations = await getCandidateInvitationsService(candidateProfileId);
+
+    return res.status(200).json({ success: true, total: invitations.length, invitations });
+  } catch (error) {
+    console.error("[GorillaTest] getCandidateInvitationsController:", error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}

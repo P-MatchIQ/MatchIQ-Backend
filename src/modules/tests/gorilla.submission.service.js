@@ -1,5 +1,6 @@
 import db from "../../config/db.js";
 import { evaluateGorillaAnswers } from "../ai/gorilla.ai.service.js";
+import { completeInvitationService } from "./gorilla.invitation.service.js";
 
 /**
  * Saves and evaluates a candidate's answers for a Gorilla Test.
@@ -90,6 +91,13 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
       submission.id,
     ]
   );
+
+  // 6. Mark invitation as completed (if one exists)
+  try {
+    await completeInvitationService(testId, candidateId);
+  } catch {
+    // Invitation may not exist — not an error
+  }
 
   return {
     message: "Test submitted and evaluated successfully",
