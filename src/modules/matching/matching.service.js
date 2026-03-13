@@ -1,7 +1,6 @@
 import db from "../../config/db.js";
 import { evaluateSingleCandidate } from "../ai/ai.service.js";
 
-// 👇 aiTop baja a 3 por defecto en lugar de 5
 export async function runMatching(offerId, aiTop = 3) {
 
   try {
@@ -13,14 +12,10 @@ export async function runMatching(offerId, aiTop = 3) {
     `;
 
     const result = await db.query(query, [offerId]);
-
     const ranking = result.rows;
 
     if (!ranking || ranking.length === 0) {
-      return {
-        ranking: [],
-        aiCandidates: []
-      };
+      return { ranking: [], aiCandidates: [] };
     }
 
     const offerQuery = `
@@ -28,52 +23,71 @@ export async function runMatching(offerId, aiTop = 3) {
       FROM job_offers
       WHERE id = $1
     `;
-
     const offerResult = await db.query(offerQuery, [offerId]);
     const offer = offerResult.rows[0];
 
     const topCandidates = ranking.slice(0, aiTop);
 
-    // 👇 Lanza todas las llamadas a la IA AL MISMO TIEMPO en paralelo
-    // En lugar de esperar una por una, esperamos que todas terminen juntas
     const aiResults = await Promise.all(
       topCandidates.map(candidate => evaluateSingleCandidate(offer, candidate))
     );
 
-    // 👇 Integramos el feedback usando el índice del array
-    // Ya no necesitamos buscar por candidate_id porque el orden se mantiene
     for (let i = 0; i < topCandidates.length; i++) {
-
       const aiCandidate = aiResults[i];
-
-      // 👇 Solo asignamos si la IA no retornó null para ese candidato
       if (aiCandidate) {
-
         topCandidates[i].ai_feedback = aiCandidate;
-
         const adjustedScore =
           topCandidates[i].final_match_percentage * 0.9 +
           aiCandidate.fit_score * 0.1;
-
         topCandidates[i].adjusted_score = Number(adjustedScore.toFixed(2));
-
       }
-
     }
 
-    
-
-    return {
-      ranking,
-      aiCandidates: topCandidates
-    };
+    return { ranking, aiCandidates: topCandidates };
 
   } catch (error) {
-
     console.error("Matching service error:", error);
-
     throw error;
+  }
+}
 
+export async function notifyCandidate(offerId, candidateId, status) {
+
+  const candidateQuery = `
+    SELECT u.email, cp.first_name || ' ' || cp.last_name AS name
+    FROM users u
+    INNER JOIN candidate_profiles cp ON cp.user_id = u.id
+    WHERE cp.id = $1
+  `;
+  const candidateResult = await db.query(candidateQuery, [candidateId]);
+  const candidate = candidateResult.rows[0];
+
+  if (!candidate) throw new Error("Candidato no encontrado");
+
+  const offerQuery = `
+    SELECT title FROM job_offers WHERE id = $1
+  `;
+  const offerResult = await db.query(offerQuery, [offerId]);
+  const offer = offerResult.rows[0];
+
+  if (!offer) throw new Error("Oferta no encontrada");
+
+  const payload = {
+    candidate_name: candidate.name,
+    candidate_email: candidate.email,
+    offer_title: offer.title,
+    status
+  };
+
+  const response = await fetch(process.env.N8N_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(`n8n webhook error: ${response.status}`);
   }
 
+  return { notified: true, candidate_email: candidate.email };
 }
