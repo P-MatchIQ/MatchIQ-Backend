@@ -39,6 +39,49 @@ export async function inviteCandidateService(offerId, candidateId) {
     [testId, candidateId, offerId]
   );
 
+  // 4. Notify candidate via n8n (send email)
+  try {
+    const candidateData = await db.query(
+      `SELECT u.email, cp.first_name, cp.last_name
+       FROM candidate_profiles cp
+       JOIN users u ON u.id = cp.user_id
+       WHERE cp.id = $1`,
+      [candidateId]
+    );
+
+    const offerData = await db.query(
+      `SELECT jo.title, comp.company_name
+       FROM job_offers jo
+       JOIN company_profiles comp ON comp.id = jo.company_id
+       WHERE jo.id = $1`,
+      [offerId]
+    );
+
+    const candidate = candidateData.rows[0];
+    const offer = offerData.rows[0];
+    const n8nUrl = process.env.N8N_WEBHOOK_URL;
+
+    if (n8nUrl && candidate) {
+      await fetch(n8nUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidate_email: candidate.email,
+          candidate_name: `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() || candidate.email,
+          offer_title: offer?.title || "N/A",
+          company_name: offer?.company_name || "N/A",
+          status: "technical_test",
+          offer_id: offerId,
+          candidate_id: candidateId,
+          test_id: testId,
+        }),
+      });
+    }
+  } catch (notifyError) {
+    // Email notification failure should not break the invitation
+    console.error("[Invitation] n8n notification failed:", notifyError.message);
+  }
+
   return {
     message: "Candidate invited successfully",
     invitation: result.rows[0],
