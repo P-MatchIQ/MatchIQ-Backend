@@ -1,7 +1,7 @@
 import db from "../../config/db.js";
 import { evaluateSingleCandidate } from "../ai/ai.service.js";
 
-// 👇 aiTop baja a 3 por defecto en lugar de 5
+// aiTop baja a 3 por defecto en lugar de 5
 export async function runMatching(offerId, aiTop = 3) {
 
   try {
@@ -34,19 +34,19 @@ export async function runMatching(offerId, aiTop = 3) {
 
     const topCandidates = ranking.slice(0, aiTop);
 
-    // 👇 Lanza todas las llamadas a la IA AL MISMO TIEMPO en paralelo
+    // Lanza todas las llamadas a la IA AL MISMO TIEMPO en paralelo
     // En lugar de esperar una por una, esperamos que todas terminen juntas
     const aiResults = await Promise.all(
       topCandidates.map(candidate => evaluateSingleCandidate(offer, candidate))
     );
 
-    // 👇 Integramos el feedback usando el índice del array
+    // Integramos el feedback usando el índice del array
     // Ya no necesitamos buscar por candidate_id porque el orden se mantiene
     for (let i = 0; i < topCandidates.length; i++) {
 
       const aiCandidate = aiResults[i];
 
-      // 👇 Solo asignamos si la IA no retornó null para ese candidato
+      // Solo asignamos si la IA no retornó null para ese candidato
       if (aiCandidate) {
 
         topCandidates[i].ai_feedback = aiCandidate;

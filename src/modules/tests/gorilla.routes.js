@@ -1,79 +1,55 @@
 import { Router } from "express";
 import {
-  generateGorillaTestController,
   getGorillaTestController,
   getFullGorillaTestController,
+  getTestByOfferIdController,
   submitGorillaTestController,
   getTestSubmissionsController,
   getCandidateSubmissionController,
+  inviteCandidateController,
+  getCandidateInvitationsController,
 } from "./gorilla.controller.js";
+import { authenticate } from "../../middlewares/authenticate.js";
+import { authorize } from "../../middlewares/authorize.js";
 
 const router = Router();
 
-// ── Job Offer routes ──────────────────────────────────────────────────────────
+// -- By offer ---------------------------------------------------------------
 
-/**
- * POST /api/job-offers/:offerId/gorilla-test/generate
- * Generates a Gorilla Test for the top 20 candidates of the offer.
- * Add ?force=true to regenerate even if a test already exists.
- */
-router.post(
-  "/job-offers/:offerId/gorilla-test/generate",
-  generateGorillaTestController
-);
+// GET /tests/job-offers/:offerId/gorilla-test
+// Returns questions WITHOUT correct answers -- for candidates
+router.get("/job-offers/:offerId/gorilla-test", getGorillaTestController);
 
-/**
- * GET /api/job-offers/:offerId/gorilla-test
- * Returns the test WITHOUT correct answers — intended for candidates.
- */
-router.get(
-  "/job-offers/:offerId/gorilla-test",
-  getGorillaTestController
-);
+// GET /tests/job-offers/:offerId/gorilla-test/full
+// Returns questions WITH correct answers -- admin only
+router.get("/job-offers/:offerId/gorilla-test/full", getFullGorillaTestController);
 
-/**
- * GET /api/job-offers/:offerId/gorilla-test/full
- * Returns the full test WITH correct answers and explanations — admin only.
- */
-router.get(
-  "/job-offers/:offerId/gorilla-test/full",
-  getFullGorillaTestController
-);
+// GET /tests/job-offers/:offerId/test-info
+// Returns test id + metadata -- used by n8n to get the test reference for the email
+router.get("/job-offers/:offerId/test-info", getTestByOfferIdController);
 
-// ── Test submission routes ────────────────────────────────────────────────────
+// POST /tests/job-offers/:offerId/invite
+// Company invites candidate(s) to take the test
+router.post("/job-offers/:offerId/invite", authenticate, authorize("company"), inviteCandidateController);
 
-/**
- * POST /api/gorilla-tests/:testId/submit
- * Candidate submits answers. Evaluated immediately by the AI engine.
- *
- * Body:
- * {
- *   "candidate_id": "uuid",
- *   "answers": { "1": "A", "2": "C", "3": "B", ... "15": "D" }
- * }
- */
-router.post(
-  "/gorilla-tests/:testId/submit",
-  submitGorillaTestController
-);
+// -- By test ----------------------------------------------------------------
 
-/**
- * GET /api/gorilla-tests/:testId/submissions
- * Returns all submissions for a test, ranked by score DESC.
- * Includes candidate name, seniority, english_level, attention_level.
- */
-router.get(
-  "/gorilla-tests/:testId/submissions",
-  getTestSubmissionsController
-);
+// POST /tests/gorilla-tests/:testId/submit
+// Candidate submits answers
+router.post("/gorilla-tests/:testId/submit", submitGorillaTestController);
 
-/**
- * GET /api/gorilla-tests/:testId/submissions/:candidateId
- * Returns the detailed result for a specific candidate.
- */
-router.get(
-  "/gorilla-tests/:testId/submissions/:candidateId",
-  getCandidateSubmissionController
-);
+// GET /tests/gorilla-tests/:testId/submissions
+// Ranking of all candidates who submitted
+router.get("/gorilla-tests/:testId/submissions", getTestSubmissionsController);
+
+// GET /tests/gorilla-tests/:testId/submissions/:candidateId
+// Detailed result for one candidate
+router.get("/gorilla-tests/:testId/submissions/:candidateId", getCandidateSubmissionController);
+
+// -- Candidate invitations ---------------------------------------------------
+
+// GET /tests/my-invitations
+// Candidate sees their pending/completed test invitations
+router.get("/my-invitations", authenticate, authorize("candidate"), getCandidateInvitationsController);
 
 export default router;

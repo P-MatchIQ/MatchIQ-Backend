@@ -10,24 +10,24 @@ import companyRoutes from './modules/company/company.routes.js';
 import catalogRoutes from './modules/catalog/catalog.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import matchingRoutes from "./modules/matching/matching.routes.js";
-import gorillaRoutes from "./modules/tests/gorilla.routes.js";
+import gorillaRoutes from "./modules/tests/gorilla.routes.js";   // ← NEW
 
 const app = express();
 
 // Parsear orígenes permitidos desde variables de entorno
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',').map(url => url.trim())
   : ['http://localhost:3000'];
 
-const allowedMethods = process.env.ALLOWED_METHODS
+const allowedMethods = process.env.ALLOWED_METHODS 
   ? process.env.ALLOWED_METHODS.split(',').map(method => method.trim())
   : ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 
-const allowedHeaders = process.env.ALLOWED_HEADERS
+const allowedHeaders = process.env.ALLOWED_HEADERS 
   ? process.env.ALLOWED_HEADERS.split(',').map(header => header.trim())
   : ['Content-Type', 'Authorization'];
 
-// Middlewares globales — orden importa
+// Middlewares globales
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
@@ -47,6 +47,6 @@ app.use('/company', companyRoutes);
 app.use('/catalog', catalogRoutes);
 app.use('/admin', adminRoutes);
 app.use('/matching', matchingRoutes);
-app.use('/tests', gorillaRoutes);
+app.use('/tests', gorillaRoutes);           
 
 export default app;

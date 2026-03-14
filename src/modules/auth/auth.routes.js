@@ -5,7 +5,7 @@ import passport from '../../config/passport.js';
 
 const router = Router();
 
-// Rutas públicas
+// Rutas públicas (sin autenticación)
 router.post('/register/candidate', authController.registerCandidate);
 router.post('/register/company', authController.registerCompany);
 router.post('/login', authController.login);
@@ -15,7 +15,7 @@ router.post('/resetPassword', authController.resetPassword);
 // Verificar sesión
 router.get('/me', authController.checkMe);
 
-// Rutas protegidas
+// Rutas protegidas (requieren autenticación)
 router.post('/logout', authenticate, authController.logout);
 router.get('/me-protected', authenticate, authController.me);
 
