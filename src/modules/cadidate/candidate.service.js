@@ -38,7 +38,7 @@ async function getProfile(userId) {
   };
 }
 
-async function updateProfile(userId, { experience_years, seniority, english_level, first_name, last_name }) {
+async function updateProfile(userId, { experience_years, seniority, english_level, first_name, last_name, github_link }) {
    console.log("updateProfile called with:", { userId, first_name, last_name, experience_years, seniority, english_level });
   const fields = [];
   const values = [];
@@ -64,6 +64,10 @@ async function updateProfile(userId, { experience_years, seniority, english_leve
     fields.push(`english_level = $${idx++}`);
     values.push(english_level);
   }
+  if (github_link !== undefined) {
+    fields.push(`github_link = $${idx++}`);
+    values.push(github_link);
+  }
 
   if (fields.length === 0) {
     throw new Error('No se enviaron campos para actualizar');
@@ -75,7 +79,7 @@ async function updateProfile(userId, { experience_years, seniority, english_leve
     `UPDATE candidate_profiles
      SET ${fields.join(', ')}
      WHERE user_id = $${idx}
-     RETURNING id, first_name, last_name, experience_years, seniority, english_level`,
+     RETURNING id, first_name, last_name, experience_years, seniority, english_level, github_link`,
     values
   );
 
