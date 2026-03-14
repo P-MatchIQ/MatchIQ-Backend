@@ -9,7 +9,7 @@ export async function runMatching(offerId, aiTop = 3) {
     const query = `
       SELECT *
       FROM get_candidate_matches($1)
-      ORDER BY final_match_percentage DESC
+      ORDER BY final_match_percentage DESC  
     `;
 
     const result = await db.query(query, [offerId]);

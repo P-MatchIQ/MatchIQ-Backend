@@ -5,7 +5,7 @@ import { authorize } from "../../middlewares/authorize.js";
 
 const router = Router();
 
-router.get("/job-offers/:offerId/matches", runMatchingController);
+router.get("/job-offers/:offerId/matches", authenticate, authorize("company", "admin"), runMatchingController);
 
 // POST /matching/job-offers/:offerId/candidates/:candidateId/notify
 // Company notifies a candidate (triggers n8n webhook for email)
