@@ -4,6 +4,7 @@ import openai from "./openAI.API.js";
 export async function evaluateSingleCandidate(offer, candidate) {
 
   try {
+    
 
     const prompt = `
 You are an expert technical recruiter.
@@ -32,7 +33,7 @@ Return ONLY valid JSON with this structure:
   "fit_score": number,
   "insight": "short recruiter explanation",
   "strengths": ["string"],
-  "opportunity for improvement": ["string"],
+  "opportunity_for_improvement": ["string"],
   "recommendation": "strong" | "moderate" | "weak"
 }
 `;
@@ -55,14 +56,14 @@ Return ONLY valid JSON with this structure:
 
     const content = response.choices[0].message.content;
 
-    // 👇 Retorna directamente el objeto del candidato
+    // Retorna directamente el objeto del candidato
     return JSON.parse(content);
 
   } catch (error) {
 
     console.error("AI evaluation error:", error.message);
 
-    // 👇 Si falla un candidato, retorna null sin romper los demás
+    // Si falla un candidato, retorna null sin romper los demás
     return null;
 
   }

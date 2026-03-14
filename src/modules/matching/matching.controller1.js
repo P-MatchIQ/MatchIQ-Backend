@@ -13,16 +13,14 @@ export async function runMatchingController(req, res, next) {
       });
     }
 
-    const { ranking, aiResult } = await runMatching(offerId, aiTop);
+    const { ranking, aiCandidates } = await runMatching(offerId, aiTop);
 
     return res.status(200).json({
       success: true,
       message: "Matching executed successfully",
       total_candidates: ranking.length,
       ranking,
-      // 👇 Sin feedback individual, solo general + mejores candidatos
-      ai_general_feedback: aiResult?.general_feedback || null,
-      ai_best_candidates: aiResult?.best_candidates || []
+      ai_evaluation_candidates: aiCandidates
     });
 
   } catch (error) {
