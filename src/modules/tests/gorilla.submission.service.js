@@ -1,5 +1,6 @@
 import db from "../../config/db.js";
 import { evaluateGorillaAnswers } from "../ai/gorilla.ai.service.js";
+import { completeInvitationService } from "./gorilla.invitation.service.js";
 
 /**
  * Saves and evaluates a candidate's answers for a Gorilla Test.
@@ -13,7 +14,7 @@ import { evaluateGorillaAnswers } from "../ai/gorilla.ai.service.js";
  */
 export async function submitGorillaTestService(testId, candidateId, answers) {
 
-  // 1️⃣ Fetch the full test (includes correct answers stored in description)
+  // 1. Fetch the full test (includes correct answers stored in description)
   const testResult = await db.query(
     `SELECT * FROM tests WHERE id = $1`,
     [testId]
@@ -30,7 +31,7 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
     throw new Error(`Test ${testId} is not a gorilla test`);
   }
 
-  // 2️⃣ Prevent duplicate submissions
+  // 2. Prevent duplicate submissions
   const existing = await db.query(
     `SELECT id FROM test_submissions
      WHERE test_id = $1 AND candidate_id = $2`,
@@ -43,27 +44,38 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
     );
   }
 
-  // 3️⃣ Insert submission with status 'pending'
-  const submissionInsert = await db.query(
-    `INSERT INTO test_submissions
-       (test_id, candidate_id, submitted_code, score, feedback, status, started_at, submitted_at)
-     VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), NOW())
-     RETURNING *`,
-    [
-      testId,
-      candidateId,
-      JSON.stringify(answers),
-      0,
-      null,
-    ]
-  );
+  // 3. Insert submission with status 'pending'
+  let submission;
+  try {
+    const submissionInsert = await db.query(
+      `INSERT INTO test_submissions
+         (test_id, candidate_id, submitted_code, score, feedback, status, started_at, submitted_at)
+       VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), NOW())
+       RETURNING *`,
+      [
+        testId,
+        candidateId,
+        JSON.stringify(answers),
+        0,
+        null,
+      ]
+    );
+    submission = submissionInsert.rows[0];
+  } catch (dbError) {
+    console.error("[GorillaSubmission] DB insert error:", dbError.message);
+    throw new Error(`Error saving submission: ${dbError.message}`);
+  }
 
-  const submission = submissionInsert.rows[0];
+  // 4. Evaluate answers
+  let evaluation;
+  try {
+    evaluation = await evaluateGorillaAnswers(testData, answers);
+  } catch (evalError) {
+    console.error("[GorillaSubmission] Evaluation error:", evalError.message);
+    throw new Error(`Error evaluating answers: ${evalError.message}`);
+  }
 
-  // 4️⃣ Evaluate answers
-  const evaluation = await evaluateGorillaAnswers(testData, answers);
-
-  // 5️⃣ Update submission with evaluation results
+  // 5. Update submission with evaluation results
   const updatedSubmission = await db.query(
     `UPDATE test_submissions
      SET
@@ -79,6 +91,13 @@ export async function submitGorillaTestService(testId, candidateId, answers) {
       submission.id,
     ]
   );
+
+  // 6. Mark invitation as completed (if one exists)
+  try {
+    await completeInvitationService(testId, candidateId);
+  } catch {
+    // Invitation may not exist — not an error
+  }
 
   return {
     message: "Test submitted and evaluated successfully",

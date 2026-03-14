@@ -1,10 +1,10 @@
 import { verifyAccessToken } from '../utils/jwt.js';
 
 export function authenticate(req, res, next) {
-  // 1️⃣ Intentar leer token de cookie primero
+  // 1. Intentar leer token de cookie primero
   const tokenFromCookie = req.cookies?.token;
   
-  // 2️⃣ Si no hay cookie, intentar de Authorization header (compatibilidad)
+  // 2. Si no hay cookie, intentar de Authorization header (compatibilidad)
   const authHeader = req.headers.authorization;
   const tokenFromHeader = authHeader?.startsWith('Bearer ') 
     ? authHeader.split(' ')[1] 

@@ -5,12 +5,12 @@ import openai from "./openAI.API.js";
  * Generates 15 Gorilla Test questions contextualized for a job offer.
  */
 export async function generateGorillaTest(offer, candidates) {
-  const candidatesSummary = candidates
+  const candidatesSummary = candidates && candidates.length > 0 ? candidates
     .map(
       (c, i) =>
         `${i + 1}. Match: ${c.final_match_percentage}% | Skills: ${c.skills || "N/A"} | Experience: ${c.experience_years ?? "?"} years`
     )
-    .join("\n");
+    .join("\n") : "No candidates evaluated yet. Generate the test based strictly on the job offer profile above.";
 
   const prompt = `
 You are an expert technical recruiter designing a cognitive attention test (Gorilla Test style).
@@ -38,7 +38,7 @@ RULES:
 - Each question has exactly ONE correct answer.
 - Gorilla questions → "type": "gorilla"
 - Standard questions → "type": "standard"
-- Write ALL questions in Spanish.
+- Write ALL questions and answers in English.
 - The correct_answer field must contain only the letter (e.g. "B").
 - gorilla_hint is only required when type is "gorilla".
 
@@ -66,19 +66,27 @@ Return ONLY valid JSON — no markdown, no explanation, no extra text:
 }
 `;
 
-  const response = await openai.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    temperature: 0.4,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an expert technical recruiter specialized in cognitive and attention-based assessments.",
-      },
-      { role: "user", content: prompt },
-    ],
-  });
+  let response;
+  try {
+    response = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert technical recruiter specialized in cognitive and attention-based assessments.",
+        },
+        { role: "user", content: prompt },
+      ],
+    });
+  } catch (aiError) {
+    console.error("[GorillaAI] OpenAI API error:", aiError.message);
+    throw new Error(
+      `Error calling OpenAI API: ${aiError.message}`
+    );
+  }
 
   const raw = response.choices[0].message.content;
 

@@ -124,7 +124,7 @@ async function getCandidateById(candidateId) {
     );
 
     const skillsResult = await pool.query(
-        `SELECT s.id, s.name, cs.level, cat.name AS category
+        `SELECT s.id, s.name, cat.name AS category
      FROM candidate_skills cs
      JOIN skills s ON s.id = cs.skill_id
      JOIN categories cat ON cat.id = s.category_id

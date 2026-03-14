@@ -53,15 +53,15 @@ async function login(req, res) {
     // Obtener token del servicio
     const { token, user } = await authService.login({ email, password });
 
-    // ✅ Crear cookie HTTP-only con duración según rememberMe
+    // Crear cookie HTTP-only con duración según rememberMe
     const maxAge = rememberMe 
       ? 30 * 24 * 60 * 60 * 1000  // 30 días
       : 24 * 60 * 60 * 1000;       // 24 horas
 
     res.cookie('token', token, {
-      httpOnly: true,        // 🔒 No accesible desde JavaScript
+      httpOnly: true,        // No accesible desde JavaScript
       secure: process.env.NODE_ENV === 'production',  // Solo HTTPS en prod
-      sameSite: process.env.NODE_ENV === 'production'? 'none': 'lax',    // 🛡️ Protege contra CS888RF
+      sameSite: process.env.NODE_ENV === 'production'? 'none': 'lax',    // Protege contra CSRF
       maxAge
     });
 

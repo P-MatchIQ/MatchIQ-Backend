@@ -11,7 +11,7 @@ async function register({ email, password, role }) {
   try {
     await client.query('BEGIN');
 
-    // 1️⃣ Verificar si el email ya existe
+    // 1. Verificar si el email ya existe
     const existingUser = await client.query(
       'SELECT id FROM users WHERE email = $1',
       [email]
@@ -21,10 +21,10 @@ async function register({ email, password, role }) {
       throw new Error('El email ya está registrado');
     }
 
-    // 2️⃣ Hashear contraseña
+    // 2. Hashear contraseña
     const passwordHash = await hashPassword(password);
 
-    // 3️⃣ Crear usuario
+    // 3. Crear usuario
     const userResult = await client.query(
       `INSERT INTO users (email, password_hash, role)
        VALUES ($1, $2, $3)
@@ -34,7 +34,7 @@ async function register({ email, password, role }) {
 
     const user = userResult.rows[0];
 
-    // 4️⃣ Crear perfil vacío según rol
+    // 4. Crear perfil vacío según rol
     if (role === 'candidate') {
       await client.query(
         'INSERT INTO candidate_profiles (user_id) VALUES ($1)',
@@ -51,7 +51,7 @@ async function register({ email, password, role }) {
 
     await client.query('COMMIT');
 
-    // 5️⃣ Generar token automáticamente (queda logueado)
+    // 5. Generar token automáticamente (queda logueado)
     const token = generateAccessToken({
       id: user.id,
       role: user.role
