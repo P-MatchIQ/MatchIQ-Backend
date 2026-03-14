@@ -32,8 +32,8 @@ async function seedUsers() {
 
     await pool.query(query);
 
-    console.log("✅ 10,000 usuarios candidatos creados");
-    console.log("🔑 Password para todos:", PASSWORD);
+    console.log("10,000 usuarios candidatos creados");
+    console.log("Password para todos:", PASSWORD);
 
 }
 

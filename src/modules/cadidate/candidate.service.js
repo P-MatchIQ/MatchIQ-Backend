@@ -23,7 +23,7 @@ async function getProfile(userId) {
   );
 
   const skillsResult = await pool.query(
-    `SELECT s.id, s.name, cs.level, cat.name AS category
+    `SELECT s.id, s.name, cat.name AS category
      FROM candidate_skills cs
      JOIN skills s ON s.id = cs.skill_id
      JOIN categories cat ON cat.id = s.category_id
@@ -182,8 +182,8 @@ async function updateSkills(userId, { skills }) {
     // Insertar nuevos skills
     for (const skill of skills) {
       await client.query(
-        'INSERT INTO candidate_skills (candidate_id, skill_id, level) VALUES ($1, $2, $3)',
-        [candidateId, skill.skill_id, skill.level]
+        'INSERT INTO candidate_skills (candidate_id, skill_id) VALUES ($1, $2)',
+        [candidateId, skill.skill_id]
       );
     }
 
@@ -191,7 +191,7 @@ async function updateSkills(userId, { skills }) {
 
     // Retornar skills actualizados
     const result = await pool.query(
-      `SELECT s.id, s.name, cs.level, cat.name AS category
+      `SELECT s.id, s.name, cat.name AS category
        FROM candidate_skills cs
        JOIN skills s ON s.id = cs.skill_id
        JOIN categories cat ON cat.id = s.category_id
