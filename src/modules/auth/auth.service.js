@@ -2,7 +2,7 @@ import pool from '../../config/db.js';
 import { hashPassword } from '../../utils/hash.js';
 import { generateAccessToken } from '../../utils/jwt.js';
 import bcrypt from 'bcrypt';
-import { sendPasswordResetEmail } from '../../utils/emails.js';
+import { sendPasswordResetEmail, sendVerificationCodeEmail } from '../../utils/emails.js';
 import crypto from 'crypto';
 
 async function register({ email, password, role }) {
@@ -47,12 +47,9 @@ async function register({ email, password, role }) {
 
     await client.query('COMMIT');
 
-    const token = generateAccessToken({
-      id: user.id,
-      role: user.role
-    });
+    await sendVerificationCode({ userId: user.id, email });
 
-    return { token };
+    return { requiresVerification: true, email };
 
   } catch (error) {
     await client.query('ROLLBACK');
@@ -62,9 +59,91 @@ async function register({ email, password, role }) {
   }
 }
 
+async function sendVerificationCode({ userId, email }) {
+  await pool.query(
+    'UPDATE email_verifications SET used = true WHERE user_id = $1 AND used = false',
+    [userId]
+  );
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  await pool.query(
+    `INSERT INTO email_verifications (user_id, code, expires_at) VALUES ($1, $2, $3)`,
+    [userId, code, expiresAt]
+  );
+
+  await sendVerificationCodeEmail({ to: email, code });
+
+  return { ok: true };
+}
+
+async function resendVerificationCode({ email }) {
+  const userResult = await pool.query(
+    'SELECT id, is_verified FROM users WHERE email = $1',
+    [email]
+  );
+
+  if (!userResult.rows.length) return { ok: true }; // No revelamos si existe
+
+  const user = userResult.rows[0];
+
+  if (user.is_verified) {
+    throw new Error('ALREADY_VERIFIED');
+  }
+
+  await sendVerificationCode({ userId: user.id, email });
+
+  return { ok: true };
+}
+
+async function verifyCode({ email, code }) {
+  const userResult = await pool.query(
+    'SELECT id, email, role FROM users WHERE email = $1',
+    [email]
+  );
+
+  if (!userResult.rows.length) {
+    throw new Error('Usuario no encontrado.');
+  }
+
+  const user = userResult.rows[0];
+
+  const result = await pool.query(
+    `SELECT * FROM email_verifications
+     WHERE user_id = $1
+       AND code = $2
+       AND used = false
+       AND expires_at > NOW()`,
+    [user.id, code]
+  );
+
+  if (!result.rows.length) {
+    throw new Error('Código inválido o expirado.');
+  }
+
+  await pool.query(
+    'UPDATE email_verifications SET used = true WHERE id = $1',
+    [result.rows[0].id]
+  );
+
+  await pool.query(
+    'UPDATE users SET is_verified = true WHERE id = $1',
+    [user.id]
+  );
+
+  const token = generateAccessToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  return { token, user };
+}
+
 async function login({ email, password }) {
   const userResult = await pool.query(
-    'SELECT id, email, password_hash, role FROM users WHERE email = $1',
+    'SELECT id, email, password_hash, role, is_verified FROM users WHERE email = $1',
     [email]
   );
 
@@ -73,15 +152,8 @@ async function login({ email, password }) {
       email === process.env.ADMIN_EMAIL &&
       password === process.env.ADMIN_PASSWORD
     ) {
-      const token = generateAccessToken({
-        id: null,
-        email,
-        role: 'admin'
-      });
-      return {
-        token,
-        user: { id: null, email, role: 'admin' }
-      };
+      const token = generateAccessToken({ id: null, email, role: 'admin' });
+      return { token, user: { id: null, email, role: 'admin' } };
     }
     throw new Error('Credenciales inválidas');
   }
@@ -89,21 +161,22 @@ async function login({ email, password }) {
   const user = userResult.rows[0];
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
-
   if (!isMatch) {
     throw new Error('Credenciales inválidas');
+  }
+
+  if (!user.is_verified) {
+    await sendVerificationCode({ userId: user.id, email: user.email });
+    throw new Error('UNVERIFIED_EMAIL');
   }
 
   const token = generateAccessToken({
     id: user.id,
     email: user.email,
-    role: user.role
+    role: user.role,
   });
 
-  return {
-    token,
-    user: { id: user.id, email: user.email, role: user.role }
-  };
+  return { token, user: { id: user.id, email: user.email, role: user.role } };
 }
 
 async function getUserById(userId) {
@@ -187,16 +260,14 @@ async function loginWithGoogle({ googleId, email, firstName, lastName, role = 'c
       [email]
     );
 
-    // Ya existe → login, no cambia su rol
     if (existing.rows.length > 0) {
       await client.query('COMMIT');
       return existing.rows[0];
     }
 
-    // No existe → crear con el rol que viene del formulario
     const newUser = await client.query(
-      `INSERT INTO users (email, password_hash, role, is_active)
-       VALUES ($1, NULL, $2, true)
+      `INSERT INTO users (email, password_hash, role, is_active, is_verified)
+       VALUES ($1, NULL, $2, true, true)
        RETURNING id, email, role`,
       [email, role]
     );
@@ -234,4 +305,7 @@ export const authService = {
   forgotPassword,
   resetPassword,
   loginWithGoogle,
+  sendVerificationCode,
+  verifyCode,
+  resendVerificationCode,
 };

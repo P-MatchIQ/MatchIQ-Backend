@@ -1,4 +1,4 @@
-import { validateRegister } from './auth.validation.js';
+import { validateRegister, validateVerifyEmail, validateResendCode } from './auth.validation.js';
 import { authService } from './auth.service.js';
 import { generateAccessToken } from '../../utils/jwt.js';
 
@@ -50,9 +50,15 @@ async function login(req, res) {
     });
 
   } catch (error) {
+    if (error.message === 'UNVERIFIED_EMAIL') {
+      return res.status(403).json({
+        code: 'UNVERIFIED_EMAIL',
+        message: 'Debes verificar tu email antes de ingresar. Te enviamos un nuevo código.',
+      });
+    }
     return res.status(401).json({
       code: 'INVALID_CREDENTIALS',
-      message: error.message
+      message: error.message,
     });
   }
 }
@@ -198,6 +204,49 @@ async function googleCallback(req, res) {
   }
 }
 
+async function verifyEmail(req, res) {
+  try {
+    const { email, code } = req.body;
+    validateVerifyEmail({ email, code });
+
+    const { token, user } = await authService.verifyCode({ email, code });
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      user: { id: user.id, email: user.email, role: user.role },
+    });
+
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+}
+
+async function resendVerificationCode(req, res) {
+  try {
+    const { email } = req.body;
+    validateResendCode({ email });
+
+    await authService.resendVerificationCode({ email });
+
+    return res.status(200).json({ ok: true, message: 'Código reenviado.' });
+
+  } catch (error) {
+    if (error.message === 'ALREADY_VERIFIED') {
+      return res.status(400).json({ message: 'Este email ya está verificado.' });
+    }
+    return res.status(500).json({ message: error.message });
+  }
+}
+
 export const authController = {
   registerCandidate,
   registerCompany,
@@ -208,4 +257,6 @@ export const authController = {
   forgotPassword,
   resetPassword,
   googleCallback,
+  verifyEmail,
+  resendVerificationCode,
 };
