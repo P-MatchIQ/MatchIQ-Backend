@@ -2,7 +2,7 @@ import pool from '../../config/db.js';
 
 async function getProfile(userId) {
   const profileResult = await pool.query(
-    `SELECT cp.id, cp.first_name, cp.last_name, cp.experience_years, cp.seniority, cp.english_level, cp.created_at
+    `SELECT cp.id, cp.first_name, cp.last_name, cp.experience_years, cp.seniority, cp.english_level, cp.github_link, cp.created_at
      FROM candidate_profiles cp
      WHERE cp.user_id = $1`,
     [userId]

@@ -23,6 +23,24 @@ export async function runMatching(offerId, aiTop = 3) {
       };
     }
 
+    // Enrich ranking with email and github_link
+    const candidateIds = ranking.map(r => r.candidate_id);
+    const enrichResult = await db.query(
+      `SELECT cp.id, u.email, cp.github_link
+       FROM candidate_profiles cp
+       JOIN users u ON u.id = cp.user_id
+       WHERE cp.id = ANY($1)`,
+      [candidateIds]
+    );
+    const enrichMap = new Map(enrichResult.rows.map(r => [r.id, r]));
+    ranking.forEach(r => {
+      const extra = enrichMap.get(r.candidate_id);
+      if (extra) {
+        r.email = extra.email || '';
+        r.github_link = extra.github_link || '';
+      }
+    });
+
     const offerQuery = `
       SELECT id, title, description, min_experience_years, required_english_level
       FROM job_offers
