@@ -12,7 +12,7 @@ async function getDashboard() {
     );
 
     const matchesResult = await pool.query(
-        `SELECT COUNT(*) AS total FROM matches WHERE stage = 'selected'`
+        `SELECT COUNT(*) AS total FROM test_submissions WHERE status = 'evaluated'`
     );
 
     const latestCompaniesResult = await pool.query(
