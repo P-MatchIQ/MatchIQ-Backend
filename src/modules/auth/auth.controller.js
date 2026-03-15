@@ -193,9 +193,9 @@ async function googleCallback(req, res) {
     });
 
     if (user.role === 'candidate') {
-      return res.redirect(`${process.env.FRONTEND_URL}/public/candidate/dashboard.html`);
+      return res.redirect(`${process.env.FRONTEND_URL}/public/candidate/index.html`);
     } else if (user.role === 'company') {
-      return res.redirect(`${process.env.FRONTEND_URL}/public/company/dashboard.html`);
+      return res.redirect(`${process.env.FRONTEND_URL}/public/company/index.html`);
     } else {
       return res.redirect(`${process.env.FRONTEND_URL}/public/login.html`);
     }
