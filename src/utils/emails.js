@@ -35,3 +35,33 @@ export async function sendPasswordResetEmail({ to, resetUrl }) {
     `,
   });
 }
+
+export async function sendVerificationCodeEmail({ to, code }) {
+  await transporter.sendMail({
+    from: `"MatchIQ" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: 'Verifica tu cuenta — MatchIQ',
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+        <h2 style="color: #6B3FA0;">Verifica tu cuenta</h2>
+        <p>Gracias por registrarte en MatchIQ. Usa el siguiente código para verificar tu email:</p>
+        <div style="
+          margin: 32px auto;
+          text-align: center;
+          letter-spacing: 12px;
+          font-size: 40px;
+          font-weight: bold;
+          color: #6B3FA0;
+          background: #F3EEFF;
+          border-radius: 12px;
+          padding: 24px;
+          width: fit-content;
+        ">${code}</div>
+        <p>Este código expira en <strong>10 minutos</strong>.</p>
+        <p style="margin-top: 24px; color: #9E9E9E; font-size: 13px;">
+          Si no creaste una cuenta en MatchIQ, ignora este correo.
+        </p>
+      </div>
+    `,
+  });
+}

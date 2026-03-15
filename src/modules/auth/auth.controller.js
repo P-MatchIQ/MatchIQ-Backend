@@ -1,20 +1,13 @@
-import { validateRegister } from './auth.validation.js';
+import { validateRegister, validateVerifyEmail, validateResendCode } from './auth.validation.js';
 import { authService } from './auth.service.js';
+import { generateAccessToken } from '../../utils/jwt.js';
 
 async function registerCandidate(req, res) {
   try {
     const { email, password, confirmPassword } = req.body;
-
     validateRegister({ email, password, confirmPassword });
-
-    const result = await authService.register({
-      email,
-      password,
-      role: 'candidate'
-    });
-
+    const result = await authService.register({ email, password, role: 'candidate' });
     return res.status(201).json(result);
-
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
@@ -23,25 +16,14 @@ async function registerCandidate(req, res) {
 async function registerCompany(req, res) {
   try {
     const { email, password, confirmPassword } = req.body;
-
     validateRegister({ email, password, confirmPassword });
-
-    const result = await authService.register({
-      email,
-      password,
-      role: 'company'
-    });
-
+    const result = await authService.register({ email, password, role: 'company' });
     return res.status(201).json(result);
-
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
 }
 
-/**
- * Login - Crea cookie HTTP-only con JWT
- */
 async function login(req, res) {
   try {
     const { email, password, rememberMe } = req.body;
@@ -50,193 +32,121 @@ async function login(req, res) {
       throw new Error('Email y password son obligatorios');
     }
 
-    // Obtener token del servicio
     const { token, user } = await authService.login({ email, password });
 
-    // Crear cookie HTTP-only con duración según rememberMe
-    const maxAge = rememberMe 
-      ? 30 * 24 * 60 * 60 * 1000  // 30 días
-      : 24 * 60 * 60 * 1000;       // 24 horas
+    const maxAge = rememberMe
+      ? 30 * 24 * 60 * 60 * 1000
+      : 24 * 60 * 60 * 1000;
 
     res.cookie('token', token, {
-      httpOnly: true,        // No accesible desde JavaScript
-      secure: process.env.NODE_ENV === 'production',  // Solo HTTPS en prod
-      sameSite: process.env.NODE_ENV === 'production'? 'none': 'lax',    // Protege contra CSRF
-      maxAge
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge,
     });
 
-    // Responder con datos del usuario (sin el token en la respuesta)
-    return res.status(200).json({ 
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      }
+    return res.status(200).json({
+      user: { id: user.id, email: user.email, role: user.role }
     });
 
   } catch (error) {
-    return res.status(401).json({ 
+    if (error.message === 'UNVERIFIED_EMAIL') {
+      return res.status(403).json({
+        code: 'UNVERIFIED_EMAIL',
+        message: 'Debes verificar tu email antes de ingresar. Te enviamos un nuevo código.',
+      });
+    }
+    return res.status(401).json({
       code: 'INVALID_CREDENTIALS',
-      message: error.message
+      message: error.message,
     });
   }
 }
 
-/**
- * Logout - Limpia la cookie del token
- */
 async function logout(req, res) {
   try {
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+      sameSite: 'strict',
     });
-
-    return res.status(200).json({ 
-      ok: true,
-      message: 'Sesión cerrada exitosamente'
-    });
-
+    return res.status(200).json({ ok: true, message: 'Sesión cerrada exitosamente' });
   } catch (error) {
-    return res.status(400).json({ 
-      code: 'LOGOUT_FAILED',
-      message: error.message
-    });
+    return res.status(400).json({ code: 'LOGOUT_FAILED', message: error.message });
   }
 }
 
-/**
- * Me - Verifica sesión activa
- * Devuelve el usuario autenticado si hay sesión válida
- */
 async function me(req, res) {
   try {
-    // Si el middleware authenticate pasó, req.user tiene el payload del JWT
     if (!req.user) {
-      return res.status(200).json({
-        authenticated: false,
-        user: null
-      });
+      return res.status(200).json({ authenticated: false, user: null });
     }
 
-    // Si el token corresponde a un admin (no tiene ID de BD)
     if (req.user.role === 'admin') {
       return res.status(200).json({
         authenticated: true,
-        user: {
-          id: req.user.id, // puede ser null
-          email: req.user.email,
-          role: 'admin'
-        }
+        user: { id: req.user.id, email: req.user.email, role: 'admin' }
       });
     }
 
-    // Obtener datos completos del usuario desde BD
     const user = await authService.getUserById(req.user.id);
 
     if (!user) {
-      return res.status(200).json({
-        authenticated: false,
-        user: null
-      });
+      return res.status(200).json({ authenticated: false, user: null });
     }
 
     return res.status(200).json({
       authenticated: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      }
+      user: { id: user.id, email: user.email, role: user.role }
     });
 
   } catch (error) {
-    // En caso de error, responder como no autenticado (sin arrojar error)
-    return res.status(200).json({
-      authenticated: false,
-      user: null
-    });
+    return res.status(200).json({ authenticated: false, user: null });
   }
 }
 
-/**
- * Check Me - Versión pública (sin autenticación requerida)
- * Se usa para verificar sesión en cada carga de app
- */
 async function checkMe(req, res) {
   try {
     const { verifyAccessToken } = await import('../../utils/jwt.js');
-    
     const tokenFromCookie = req.cookies?.token;
 
-    // Si no hay token, no hay sesión
     if (!tokenFromCookie) {
-      return res.status(200).json({
-        authenticated: false,
-        user: null
-      });
+      return res.status(200).json({ authenticated: false, user: null });
     }
 
-    // Verificar token
     const payload = verifyAccessToken(tokenFromCookie);
 
-    // Si es admin no existe registro en BD
     if (payload.role === 'admin') {
       return res.status(200).json({
         authenticated: true,
-        user: {
-          id: payload.id || null,
-          email: payload.email,
-          role: 'admin'
-        }
+        user: { id: payload.id || null, email: payload.email, role: 'admin' }
       });
     }
 
-    // Obtener datos del usuario
     const user = await authService.getUserById(payload.id);
 
     if (!user) {
-      return res.status(200).json({
-        authenticated: false,
-        user: null
-      });
+      return res.status(200).json({ authenticated: false, user: null });
     }
 
     return res.status(200).json({
       authenticated: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      }
+      user: { id: user.id, email: user.email, role: user.role }
     });
 
   } catch (error) {
-    // Token inválido o expirado
-    return res.status(200).json({
-      authenticated: false,
-      user: null
-    });
+    return res.status(200).json({ authenticated: false, user: null });
   }
 }
-
 
 async function forgotPassword(req, res) {
   try {
     const { email } = req.body;
-
     if (!email) {
       return res.status(400).json({ message: 'El email es obligatorio.' });
     }
-
     await authService.forgotPassword({ email });
-
-    return res.status(200).json({
-      ok: true,
-      message: 'Si el email está registrado, recibirás un enlace en breve.'
-    });
-
+    return res.status(200).json({ ok: true, message: 'Si el email está registrado, recibirás un enlace en breve.' });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -249,24 +159,91 @@ async function resetPassword(req, res) {
     if (!token || !newPassword || !confirmPassword) {
       return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
     }
-
     if (newPassword.length < 6) {
       return res.status(400).json({ message: 'La contraseña debe tener mínimo 6 caracteres.' });
     }
-
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: 'Las contraseñas no coinciden.' });
     }
 
     await authService.resetPassword({ token, newPassword });
+    return res.status(200).json({ ok: true, message: 'Contraseña actualizada exitosamente.' });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+}
+
+async function googleCallback(req, res) {
+  try {
+    const user = req.user;
+
+    const token = generateAccessToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 2 * 60 * 60 * 1000,
+    });
+
+    if (user.role === 'candidate') {
+      return res.redirect(`${process.env.FRONTEND_URL}/public/candidate/index.html`);
+    } else if (user.role === 'company') {
+      return res.redirect(`${process.env.FRONTEND_URL}/public/company/index.html`);
+    } else {
+      return res.redirect(`${process.env.FRONTEND_URL}/public/login.html`);
+    }
+  } catch (error) {
+    return res.redirect(`${process.env.FRONTEND_URL}/public/login.html?error=google_failed`);
+  }
+}
+
+async function verifyEmail(req, res) {
+  try {
+    const { email, code } = req.body;
+    validateVerifyEmail({ email, code });
+
+    const { token, user } = await authService.verifyCode({ email, code });
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
 
     return res.status(200).json({
       ok: true,
-      message: 'Contraseña actualizada exitosamente.'
+      user: { id: user.id, email: user.email, role: user.role },
     });
 
   } catch (error) {
     return res.status(400).json({ message: error.message });
+  }
+}
+
+async function resendVerificationCode(req, res) {
+  try {
+    const { email } = req.body;
+    validateResendCode({ email });
+
+    await authService.resendVerificationCode({ email });
+
+    return res.status(200).json({ ok: true, message: 'Código reenviado.' });
+
+  } catch (error) {
+    if (error.message === 'ALREADY_VERIFIED') {
+      return res.status(400).json({ message: 'Este email ya está verificado.' });
+    }
+    return res.status(500).json({ message: error.message });
   }
 }
 
@@ -278,5 +255,8 @@ export const authController = {
   me,
   checkMe,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  googleCallback,
+  verifyEmail,
+  resendVerificationCode,
 };

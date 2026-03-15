@@ -2,7 +2,7 @@ import pool from '../../config/db.js';
 import { hashPassword } from '../../utils/hash.js';
 import { generateAccessToken } from '../../utils/jwt.js';
 import bcrypt from 'bcrypt';
-import { sendPasswordResetEmail } from '../../utils/emails.js';
+import { sendPasswordResetEmail, sendVerificationCodeEmail } from '../../utils/emails.js';
 import crypto from 'crypto';
 
 async function register({ email, password, role }) {
@@ -11,7 +11,6 @@ async function register({ email, password, role }) {
   try {
     await client.query('BEGIN');
 
-    // 1. Verificar si el email ya existe
     const existingUser = await client.query(
       'SELECT id FROM users WHERE email = $1',
       [email]
@@ -21,10 +20,8 @@ async function register({ email, password, role }) {
       throw new Error('El email ya está registrado');
     }
 
-    // 2. Hashear contraseña
     const passwordHash = await hashPassword(password);
 
-    // 3. Crear usuario
     const userResult = await client.query(
       `INSERT INTO users (email, password_hash, role)
        VALUES ($1, $2, $3)
@@ -34,7 +31,6 @@ async function register({ email, password, role }) {
 
     const user = userResult.rows[0];
 
-    // 4. Crear perfil vacío según rol
     if (role === 'candidate') {
       await client.query(
         'INSERT INTO candidate_profiles (user_id) VALUES ($1)',
@@ -51,13 +47,9 @@ async function register({ email, password, role }) {
 
     await client.query('COMMIT');
 
-    // 5. Generar token automáticamente (queda logueado)
-    const token = generateAccessToken({
-      id: user.id,
-      role: user.role
-    });
+    await sendVerificationCode({ userId: user.id, email });
 
-    return { token };
+    return { requiresVerification: true, email };
 
   } catch (error) {
     await client.query('ROLLBACK');
@@ -67,78 +59,136 @@ async function register({ email, password, role }) {
   }
 }
 
+async function sendVerificationCode({ userId, email }) {
+  await pool.query(
+    'UPDATE email_verifications SET used = true WHERE user_id = $1 AND used = false',
+    [userId]
+  );
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  await pool.query(
+    `INSERT INTO email_verifications (user_id, code, expires_at) VALUES ($1, $2, $3)`,
+    [userId, code, expiresAt]
+  );
+
+  await sendVerificationCodeEmail({ to: email, code });
+
+  return { ok: true };
+}
+
+async function resendVerificationCode({ email }) {
+  const userResult = await pool.query(
+    'SELECT id, is_verified FROM users WHERE email = $1',
+    [email]
+  );
+
+  if (!userResult.rows.length) return { ok: true }; // No revelamos si existe
+
+  const user = userResult.rows[0];
+
+  if (user.is_verified) {
+    throw new Error('ALREADY_VERIFIED');
+  }
+
+  await sendVerificationCode({ userId: user.id, email });
+
+  return { ok: true };
+}
+
+async function verifyCode({ email, code }) {
+  const userResult = await pool.query(
+    'SELECT id, email, role FROM users WHERE email = $1',
+    [email]
+  );
+
+  if (!userResult.rows.length) {
+    throw new Error('Usuario no encontrado.');
+  }
+
+  const user = userResult.rows[0];
+
+  const result = await pool.query(
+    `SELECT * FROM email_verifications
+     WHERE user_id = $1
+       AND code = $2
+       AND used = false
+       AND expires_at > NOW()`,
+    [user.id, code]
+  );
+
+  if (!result.rows.length) {
+    throw new Error('Código inválido o expirado.');
+  }
+
+  await pool.query(
+    'UPDATE email_verifications SET used = true WHERE id = $1',
+    [result.rows[0].id]
+  );
+
+  await pool.query(
+    'UPDATE users SET is_verified = true WHERE id = $1',
+    [user.id]
+  );
+
+  const token = generateAccessToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  return { token, user };
+}
+
 async function login({ email, password }) {
   const userResult = await pool.query(
-    'SELECT id, email, password_hash, role FROM users WHERE email = $1',
+    'SELECT id, email, password_hash, role, is_verified FROM users WHERE email = $1',
     [email]
   );
 
   if (userResult.rows.length === 0) {
-    // si no hay usuario, permitir admin vía variables de entorno
     if (
       email === process.env.ADMIN_EMAIL &&
       password === process.env.ADMIN_PASSWORD
     ) {
-      const token = generateAccessToken({
-        id: null,
-        email,
-        role: 'admin'
-      });
-      return {
-        token,
-        user: {
-          id: null,
-          email,
-          role: 'admin'
-        }
-      };
+      const token = generateAccessToken({ id: null, email, role: 'admin' });
+      return { token, user: { id: null, email, role: 'admin' } };
     }
-
     throw new Error('Credenciales inválidas');
   }
 
   const user = userResult.rows[0];
 
-  const isMatch = await bcrypt.compare(password, user.password_hash)
-
+  const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
-    throw new Error('Credenciales inválidas')
+    throw new Error('Credenciales inválidas');
+  }
+
+  if (!user.is_verified) {
+    await sendVerificationCode({ userId: user.id, email: user.email });
+    throw new Error('UNVERIFIED_EMAIL');
   }
 
   const token = generateAccessToken({
     id: user.id,
     email: user.email,
-    role: user.role
-  })
+    role: user.role,
+  });
 
-  return { 
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    }
-  }
+  return { token, user: { id: user.id, email: user.email, role: user.role } };
 }
 
 async function getUserById(userId) {
-  try {
-    const userResult = await pool.query(
-      'SELECT id, email, role FROM users WHERE id = $1',
-      [userId]
-    );
+  const userResult = await pool.query(
+    'SELECT id, email, role FROM users WHERE id = $1',
+    [userId]
+  );
 
-    if (userResult.rows.length === 0) {
-      return null;
-    }
+  if (userResult.rows.length === 0) return null;
 
-    return userResult.rows[0];
-  } catch (error) {
-    throw error;
-  }
+  return userResult.rows[0];
 }
-
-
 
 async function forgotPassword({ email }) {
   const result = await pool.query(
@@ -146,18 +196,15 @@ async function forgotPassword({ email }) {
     [email]
   );
 
-  // Aunque no exista respondemos igual para no revelar emails registrados
   if (!result.rows.length) return { ok: true };
 
   const user = result.rows[0];
 
-  // Invalidar tokens anteriores
   await pool.query(
     'UPDATE password_resets SET used = true WHERE user_id = $1 AND used = false',
     [user.id]
   );
 
-  // Generar token seguro
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
@@ -202,10 +249,63 @@ async function resetPassword({ token, newPassword }) {
   return { ok: true };
 }
 
+async function loginWithGoogle({ googleId, email, firstName, lastName, role = 'candidate' }) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const existing = await client.query(
+      'SELECT id, email, role FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existing.rows.length > 0) {
+      await client.query('COMMIT');
+      return existing.rows[0];
+    }
+
+    const newUser = await client.query(
+      `INSERT INTO users (email, password_hash, role, is_active, is_verified)
+       VALUES ($1, NULL, $2, true, true)
+       RETURNING id, email, role`,
+      [email, role]
+    );
+
+    const user = newUser.rows[0];
+
+    if (role === 'candidate') {
+      await client.query(
+        `INSERT INTO candidate_profiles (user_id, first_name, last_name)
+         VALUES ($1, $2, $3)`,
+        [user.id, firstName, lastName]
+      );
+    } else if (role === 'company') {
+      await client.query(
+        `INSERT INTO company_profiles (user_id) VALUES ($1)`,
+        [user.id]
+      );
+    }
+
+    await client.query('COMMIT');
+    return user;
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export const authService = {
   register,
   login,
   getUserById,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  loginWithGoogle,
+  sendVerificationCode,
+  verifyCode,
+  resendVerificationCode,
 };
