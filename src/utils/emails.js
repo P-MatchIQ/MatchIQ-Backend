@@ -1,14 +1,16 @@
 import nodemailer from 'nodemailer';
+import dns from "dns";
+
+dns.setDefaultResultOrder("ipv4first");
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
+  host: "smtp.gmail.com",
   port: 465,
-  secure: true, // true para 465
+  secure: true,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
-  family: 4,
 });
 
 export async function sendPasswordResetEmail({ to, resetUrl }) {
