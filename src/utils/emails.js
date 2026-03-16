@@ -8,11 +8,18 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   requireTLS: true,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
 });
+
+transporter.verify()
+  .then(() => console.log("SMTP conectado"))
+  .catch(err => console.error("SMTP error:", err));
 
 export async function sendPasswordResetEmail({ to, resetUrl }) {
   await transporter.sendMail({
