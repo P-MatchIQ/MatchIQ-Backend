@@ -1,22 +1,12 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-  family: 4,
-});
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+const FROM_EMAIL = 'matchiqtesla3@gmail.com';
 
 export async function sendPasswordResetEmail({ to, resetUrl }) {
-  await transporter.sendMail({
-    from: `"MatchIQ" <${process.env.GMAIL_USER}>`,
+  await sgMail.send({
+    from: { name: 'MatchIQ', email: FROM_EMAIL },
     to,
     subject: 'Recuperar contraseña — MatchIQ',
     html: `
@@ -43,8 +33,8 @@ export async function sendPasswordResetEmail({ to, resetUrl }) {
 }
 
 export async function sendVerificationCodeEmail({ to, code }) {
-  await transporter.sendMail({
-    from: `"MatchIQ" <${process.env.GMAIL_USER}>`,
+  await sgMail.send({
+    from: { name: 'MatchIQ', email: FROM_EMAIL },
     to,
     subject: 'Verifica tu cuenta — MatchIQ',
     html: `
