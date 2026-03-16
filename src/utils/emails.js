@@ -6,6 +6,7 @@ const transporter = nodemailer.createTransport({
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
+  family: 4, 
 });
 
 export async function sendPasswordResetEmail({ to, resetUrl }) {
