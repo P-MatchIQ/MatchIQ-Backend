@@ -3,7 +3,7 @@ import app from './app.js';
 import pool from './config/db.js';
 import './config/passport.js';
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3005;
 
 async function startServer() {
   try {
