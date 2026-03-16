@@ -68,7 +68,7 @@ async function logout(req, res) {
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
     });
     return res.status(200).json({ ok: true, message: 'Sesión cerrada exitosamente' });
   } catch (error) {
