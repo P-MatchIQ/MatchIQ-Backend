@@ -20,7 +20,7 @@ export async function runMatchingController(req, res, next) {
       message: "Matching executed successfully",
       total_candidates: ranking.length,
       ranking,
-      // 👇 Sin feedback individual, solo general + mejores candidatos
+      // Sin feedback individual, solo general + mejores candidatos
       ai_general_feedback: aiResult?.general_feedback || null,
       ai_best_candidates: aiResult?.best_candidates || []
     });

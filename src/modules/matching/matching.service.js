@@ -3,9 +3,14 @@ import { evaluateSingleCandidate } from "../ai/ai.service.js";
 
 // ─── queries reutilizables ───
 const getOffer = (offerId) => db.query(`
-  SELECT id, title, description, min_experience_years, required_english_level
-  FROM job_offers WHERE id = $1
-`, [offerId]);
+  SELECT jo.id, jo.title, jo.description, jo.min_experience_years, 
+         jo.required_english_level,
+         cp.company_name
+  FROM job_offers jo
+  INNER JOIN company_profiles cp 
+  ON cp.id = jo.company_id
+  WHERE jo.id = $1
+`, [offerId]);;
 
 const getCandidate = (candidateId) => db.query(`
   SELECT u.email,
@@ -34,10 +39,10 @@ export async function runMatching(offerId, aiTop = 3) {
 
   const offer = offerResult.rows[0];
 
-  // 👇 Toma el top N para evaluar con IA
+  // Toma el top N para evaluar con IA
   const topCandidates = ranking.slice(0, aiTop);
 
-  // 👇 Una sola llamada con todos los candidatos
+  // Una sola llamada con todos los candidatos
   const aiResult = await evaluateSingleCandidate(offer, topCandidates);
 
   return {
@@ -60,6 +65,14 @@ export async function notifyCandidate(offerId, candidateId, status) {
   if (!candidate) throw new Error("Candidato no encontrado");
   if (!offer) throw new Error("Oferta no encontrada");
 
+  console.log("Payload a n8n:", {
+  candidate_name: candidate.name,
+  candidate_email: candidate.email,
+  offer_title: offer.title,
+  company_name: offer.company_name,
+  status
+});
+
   const response = await fetch(process.env.N8N_WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -67,6 +80,7 @@ export async function notifyCandidate(offerId, candidateId, status) {
       candidate_name: candidate.name,
       candidate_email: candidate.email,
       offer_title: offer.title,
+      company_name: offer.company_name,
       status
     })
   });
