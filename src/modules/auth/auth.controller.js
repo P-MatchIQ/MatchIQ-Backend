@@ -63,13 +63,29 @@ async function login(req, res) {
   }
 }
 
+// async function logout(req, res) {
+//   try {
+//     res.clearCookie('token', {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === 'production',
+//       sameSite: 'lax',
+//     });
+//     return res.status(200).json({ ok: true, message: 'Sesión cerrada exitosamente' });
+//   } catch (error) {
+//     return res.status(400).json({ code: 'LOGOUT_FAILED', message: error.message });
+//   }
+// }
+
 async function logout(req, res) {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
+
     res.clearCookie('token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
     });
+
     return res.status(200).json({ ok: true, message: 'Sesión cerrada exitosamente' });
   } catch (error) {
     return res.status(400).json({ code: 'LOGOUT_FAILED', message: error.message });
